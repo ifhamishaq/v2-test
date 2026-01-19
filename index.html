@@ -10,6 +10,20 @@
     <meta name="description"
         content="Generate stunning AI wallpapers with professional tools. Custom styles, high-resolution exports, and community sharing." />
 
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Wallpaper Studio Pro — AI Creation Lab" />
+    <meta property="og:description"
+        content="Create stunning AI wallpapers with professional tools. Join the community and share your masterpieces." />
+    <meta property="og:image" content="https://wallpaper-studio-pro.netlify.app/preview.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Wallpaper Studio Pro — AI Creation Lab" />
+    <meta property="twitter:description"
+        content="Create stunning AI wallpapers with professional tools. Join the community and share your masterpieces." />
+    <meta property="twitter:image" content="https://wallpaper-studio-pro.netlify.app/preview.jpg" />
+
     <!-- Frameworks & Fonts -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link
@@ -242,7 +256,7 @@
 
                     <!-- Center Plus Button -->
                     <div class="plus-connector group/plus">
-                        <button onclick="randomize()"
+                        <button onclick="openCommunityUpload()"
                             class="w-full h-full flex items-center justify-center text-white/40 hover:text-white transition-colors">
                             <span
                                 class="material-symbols-outlined text-[32px] group-hover/plus:rotate-90 transition-transform duration-500">add</span>
@@ -439,7 +453,7 @@
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">explore</span>
             </a>
-            <button onclick="randomize()"
+            <button onclick="openCommunityUpload()"
                 class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all">
                 <span class="material-symbols-outlined font-bold text-[28px]">add</span>
             </button>
@@ -519,6 +533,54 @@
                         class="material-symbols-outlined">link</span></button>
                 <button onclick="shareImage('download')" class="share-btn text-accent"><span
                         class="material-symbols-outlined">download</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Community Upload Modal -->
+    <div id="community-upload-modal" class="fixed inset-0 z-[300] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-2xl" onclick="closeCommunityUpload()"></div>
+        <div
+            class="relative w-full max-w-md glass-main rounded-[2.5rem] p-8 border border-white/10 animate-[scaleIn_0.3s_ease_out]">
+            <div class="text-center mb-8">
+                <div
+                    class="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-3xl">cloud_upload</span>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight">Share to Community</h2>
+                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest mt-1">Publish your masterpiece
+                </p>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Preview -->
+                <div class="aspect-[16/9] w-full rounded-2xl overflow-hidden glass-pill border border-white/5">
+                    <img id="upload-preview" src="" class="w-full h-full object-cover">
+                </div>
+
+                <!-- Input Fields -->
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Masterpiece
+                            Title</label>
+                        <input type="text" id="upload-title" placeholder="Give it a name..."
+                            class="w-full h-14 rounded-2xl glass-pill px-6 text-sm placeholder:text-white/20 focus:bg-white/10 transition-all border-none">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Brief
+                            Story</label>
+                        <textarea id="upload-desc" placeholder="What inspired this? (Optional)"
+                            class="w-full h-32 rounded-2xl glass-pill px-6 py-4 text-sm placeholder:text-white/20 focus:bg-white/10 transition-all border-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeCommunityUpload()"
+                        class="h-14 flex-1 rounded-full glass-main font-bold text-sm hover:bg-white/5 transition-all">Cancel</button>
+                    <button onclick="submitToCommunity()"
+                        class="h-14 flex-[2] rounded-full bg-white text-black font-bold text-sm shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-[0.98] transition-all">Publish
+                        Now</button>
+                </div>
             </div>
         </div>
     </div>

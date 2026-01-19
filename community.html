@@ -144,9 +144,29 @@
             </div>
         </div>
 
+        <!-- Live Update Toast -->
+        <button id="new-wallpapers-toast" onclick="loadWallpapers(true)"
+            class="fixed top-24 left-1/2 -translate-x-1/2 z-50 hidden glass-pill px-6 py-2 rounded-full flex items-center gap-2 hover:bg-white/20 transition-all border border-accent/20 animate-bounce cursor-pointer">
+            <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+            <span class="text-xs font-bold uppercase tracking-widest text-white">New Art Available</span>
+        </button>
+
         <!-- Gallery Grid -->
         <div id="gallery-grid" class="masonry-grid opacity-0 animate-[fadeIn_1s_ease_forwards]">
             <!-- Wallpapers loaded here -->
+        </div>
+
+        <!-- Skeleton Loader (Shimmering) -->
+        <div id="skeleton-grid" class="masonry-grid hidden">
+            <!-- 8 skeletons -->
+            <div class="masonry-item skeleton h-80"></div>
+            <div class="masonry-item skeleton h-96"></div>
+            <div class="masonry-item skeleton h-64"></div>
+            <div class="masonry-item skeleton h-80"></div>
+            <div class="masonry-item skeleton h-72"></div>
+            <div class="masonry-item skeleton h-96"></div>
+            <div class="masonry-item skeleton h-80"></div>
+            <div class="masonry-item skeleton h-64"></div>
         </div>
 
         <!-- Loading Indicator -->
@@ -164,6 +184,14 @@
             <p class="text-white/40 text-sm mb-8 max-w-xs">Try adjust your search or check back later for new community
                 creations.</p>
             <a href="index.html" class="px-8 py-4 bg-white text-black font-bold rounded-full">Create One Now</a>
+        </div>
+
+        <!-- End of Gallery -->
+        <div id="end-of-gallery"
+            class="flex flex-col items-center justify-center py-20 hidden text-center border-t border-white/5">
+            <div class="w-1.5 h-1.5 rounded-full bg-accent mb-4 animate-pulse"></div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-white/20">You've reached the edge of
+                imagination</p>
         </div>
     </main>
 
@@ -201,7 +229,8 @@
                 </div>
 
                 <!-- Detail Panel -->
-                <div class="w-full md:w-80 flex flex-col gap-8 flex-shrink-0 animate-[slideUp_0.6s_ease_out]">
+                <div
+                    class="w-full md:w-80 flex flex-col gap-8 flex-shrink-0 animate-[slideUp_0.6s_ease_out] overflow-y-auto max-h-[80vh] no-scrollbar pr-2">
                     <div class="space-y-4">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-full border border-white/20 p-0.5">
@@ -215,6 +244,14 @@
                         </div>
                         <div class="p-4 glass-main rounded-2xl border border-white/5">
                             <p id="detail-prompt-text" class="text-xs text-white/60 leading-relaxed italic">"..."</p>
+                        </div>
+                        <!-- Remix Lineage -->
+                        <div id="remix-lineage"
+                            class="hidden flex items-center gap-2 px-4 py-3 glass-main border border-accent/10 rounded-xl">
+                            <span class="material-symbols-outlined text-sm text-accent">history_edu</span>
+                            <p class="text-[10px] font-bold tracking-tight text-white/60">Remixed from <span
+                                    id="parent-artist-name" class="text-accent underline cursor-pointer">Artist</span>
+                            </p>
                         </div>
                     </div>
 
@@ -247,9 +284,27 @@
                                 class="flex-1 py-4 glass-main rounded-xl flex items-center justify-center hover:bg-white/5 transition-all">
                                 <span class="material-symbols-outlined">favorite</span>
                             </button>
-                            <button id="detail-share-btn"
-                                class="flex-1 py-4 glass-main rounded-xl flex items-center justify-center hover:bg-white/5 transition-all">
-                                <span class="material-symbols-outlined">share</span>
+                            <span class="material-symbols-outlined">share</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div class="flex flex-col gap-4 pt-4 border-t border-white/5">
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-white/60">Comments</h3>
+
+                        <div id="comments-list" class="flex flex-col gap-3 max-h-40 overflow-y-auto pr-1 no-scrollbar">
+                            <!-- Dynamic Comments -->
+                            <div class="text-[10px] text-white/40 italic">No comments yet. Be the first!</div>
+                        </div>
+
+                        <!-- Add Comment -->
+                        <div class="flex gap-2">
+                            <input id="comment-input" type="text" placeholder="Add a comment..."
+                                class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:bg-white/10 outline-none transition-all">
+                            <button id="comment-submit-btn"
+                                class="p-2 bg-white text-black rounded-xl hover:scale-105 transition-all">
+                                <span class="material-symbols-outlined text-sm">send</span>
                             </button>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, fetchComments, addComment, subscribeToWallpapers } from './supabase.js';
+import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile } from './supabase.js';
 
 let currentPage = 0;
 let currentFilter = 'latest';
@@ -126,6 +126,47 @@ function renderWallpapers(wallpapers) {
     });
 }
 
+// Logic to Open Public Profile
+window.openUserProfile = async function (username) {
+    if (!username) return;
+
+    // Close detail modal if open
+    document.getElementById('detail-modal').classList.add('hidden');
+    document.getElementById('detail-modal').classList.remove('flex');
+
+    const modal = document.getElementById('user-profile-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Load data
+    const avatar = document.getElementById('public-profile-avatar');
+    const name = document.getElementById('public-profile-name');
+    const handle = document.getElementById('public-profile-username');
+
+    // Reset
+    name.textContent = 'Loading...';
+    avatar.src = 'https://via.placeholder.com/150';
+
+    const { data: profile } = await fetchPublicProfile(username);
+
+    if (profile) {
+        name.textContent = profile.display_name || username;
+        handle.textContent = '@' + username;
+        avatar.src = profile.avatar_url || 'https://via.placeholder.com/150';
+
+        // Load stats/grid (mock for now or implement fetchUserWallpapers)
+        // For minimal scope, let's just update the follow button status
+        updateFollowButton('public-follow-btn', profile.id);
+
+        document.getElementById('public-follow-btn').onclick = () => handleFollowClick('public-follow-btn', profile.id);
+    }
+};
+
+window.closeUserProfileModal = function () {
+    document.getElementById('user-profile-modal').classList.add('hidden');
+    document.getElementById('user-profile-modal').classList.remove('flex');
+}
+
 window.showDetailModal = function (wallpaper) {
     const modal = document.getElementById('detail-modal');
     modal.classList.remove('hidden');
@@ -138,7 +179,19 @@ window.showDetailModal = function (wallpaper) {
     document.getElementById('detail-bg-image').src = wallpaper.image_url;
     document.getElementById('detail-artist-name').textContent = wallpaper.profiles?.username || 'Anonymous';
     document.getElementById('detail-artist-avatar').src = wallpaper.profiles?.avatar_url || 'https://via.placeholder.com/100';
+
+    // Clickable Profile
+    const openProfile = () => openUserProfile(wallpaper.profiles?.username);
+    document.getElementById('detail-artist-name').onclick = openProfile;
+    document.getElementById('detail-artist-avatar').onclick = openProfile;
+
     document.getElementById('detail-prompt-text').textContent = `"${wallpaper.prompt || 'No prompt shared'}"`;
+
+    // Check Follow Status
+    if (wallpaper.user_id) {
+        updateFollowButton('follow-btn', wallpaper.user_id);
+        document.getElementById('follow-btn').onclick = () => handleFollowClick('follow-btn', wallpaper.user_id);
+    }
 
     document.getElementById('wp-genre-tag').textContent = wallpaper.genre || 'Original';
     document.getElementById('wp-style-tag').textContent = wallpaper.style || 'Custom';
@@ -394,5 +447,88 @@ async function handleCommentSubmit(wallpaperId) {
     }
 }
 
+// Helper: Follow Logic
+async function updateFollowButton(btnId, targetUserId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+
+    const { following } = await checkFollowStatus(targetUserId);
+    if (following) {
+        btn.textContent = 'Following';
+        btn.classList.add('bg-white', 'text-black');
+        btn.classList.remove('glass-pill', 'text-white');
+    } else {
+        btn.textContent = 'Follow';
+        btn.classList.remove('bg-white', 'text-black');
+        btn.classList.add('glass-pill', 'text-white');
+    }
+}
+
+async function handleFollowClick(btnId, targetUserId) {
+    const user = await getCurrentUser();
+    if (!user) {
+        if (window.openAuthModal) openAuthModal();
+        return;
+    }
+
+    const { following, error } = await toggleFollow(targetUserId);
+    if (!error) {
+        updateFollowButton(btnId, targetUserId); // Re-check to sync UI
+    }
+}
+
+// Helper: Notifications Logic
+async function setupNotifications() {
+    const bell = document.getElementById('nav-notifications-btn');
+    const dropdown = document.getElementById('notifications-dropdown');
+    const badge = document.getElementById('nav-notif-badge');
+    const list = document.getElementById('notifications-list');
+
+    if (!bell) return;
+
+    bell.onclick = () => {
+        dropdown.classList.toggle('hidden');
+        if (!dropdown.classList.contains('hidden')) {
+            loadNotifs();
+        }
+    };
+
+    async function loadNotifs() {
+        list.innerHTML = '<div class="text-center py-4 text-xs text-white/40">Loading...</div>';
+        const { data, error } = await fetchNotifications();
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="text-center py-8 text-xs text-white/20 italic">No new notifications</div>';
+            return;
+        }
+
+        list.innerHTML = '';
+        data.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-xl border border-white/5 ${n.is_read ? 'bg-transparent' : 'bg-white/5'} hover:bg-white/10 transition-colors cursor-pointer`;
+            div.innerHTML = `
+                <p class="text-[10px] text-white/60 mb-1">${new Date(n.created_at).toLocaleDateString()}</p>
+                <p class="text-xs font-medium">${n.content}</p>
+            `;
+            div.onclick = async () => {
+                await markNotificationRead(n.id);
+                // navigate if link exists 
+                loadNotifs(); // refresh
+            };
+            list.appendChild(div);
+        });
+
+        // Show/Hide badge
+        const hasUnread = data.some(n => !n.is_read);
+        if (hasUnread) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+    }
+
+    // Initial check
+    const { data } = await fetchNotifications();
+    if (data && data.some(n => !n.is_read)) badge.classList.remove('hidden');
+}
+
 // Init
 loadWallpapers();
+setupNotifications();

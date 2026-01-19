@@ -103,35 +103,45 @@ export async function updateProfile(updates) {
         const user = await getCurrentUser();
         if (!user) throw new Error('User not authenticated');
 
+        // Create the base payload
         const payload = { id: user.id, ...updates };
 
-        // Ensure username is NEVER missing
+        // 1. Scrub invalid strings that might have leaked from metadata
+        if (payload.username === 'null' || payload.username === 'undefined' || !payload.username) {
+            delete payload.username;
+        }
+
+        // 2. If username is missing, we must find or forge one
         if (!payload.username) {
-            // Check DB
-            const { data: profile } = await supabase
+            // Priority A: Try existing DB record (most reliable)
+            const { data: dbProfile } = await supabase
                 .from('profiles')
                 .select('username')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            if (profile?.username) {
-                payload.username = profile.username;
+            if (dbProfile?.username && dbProfile.username !== 'null') {
+                payload.username = dbProfile.username;
             } else {
-                // Generate from metadata/email/ID
-                const candidates = [
+                // Priority B: Forge from Auth Metadata/Email
+                const fallbackCandidates = [
                     user.user_metadata?.username,
+                    user.user_metadata?.user_name,
                     user.user_metadata?.full_name?.replace(/\s+/g, '_').toLowerCase(),
                     user.email?.split('@')[0],
-                    `master_${user.id.substring(0, 5)}`
+                    `master_${user.id.substring(0, 6)}`
                 ];
-                const fallback = candidates.find(c => c && typeof c === 'string' && c.trim().length > 0) || `user_${Date.now()}`;
 
-                payload.username = fallback;
-                if (!payload.display_name) payload.display_name = fallback;
+                payload.username = fallbackCandidates.find(c => c && c !== 'null' && c.toString().trim().length > 0) || `user_${Date.now().toString(36)}`;
             }
         }
 
-        console.log('%c[Profile Fix] Payload:', 'color: #19e619; font-weight: bold;', payload);
+        // 3. Final sanity check: Ensure display_name is also set if we're creating a profile
+        if (!payload.display_name) {
+            payload.display_name = payload.username;
+        }
+
+        console.log('%c[FINAL_CHECK] Payload before Upsert:', 'background: #222; color: #bada55', payload);
 
         const { data, error } = await supabase
             .from('profiles')
@@ -140,12 +150,12 @@ export async function updateProfile(updates) {
             .single();
 
         if (error) {
-            console.error('Core Upsert Failure:', error);
+            console.error('[DB_ERROR] Upsert failed:', error);
             throw error;
         }
         return { data, error: null };
     } catch (error) {
-        console.error('Critical Update error:', error);
+        console.error('[CRITICAL] Profile Update Failed:', error);
         return { data: null, error };
     }
 }

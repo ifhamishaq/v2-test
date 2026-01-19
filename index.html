@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Wallpaper Studio Pro — AI Creation Lab</title>
+
+    <!-- SEO -->
+    <meta name="description"
+        content="Generate stunning AI wallpapers with professional tools. Custom styles, high-resolution exports, and community sharing." />
+
+    <!-- Frameworks & Fonts -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffffff",
+                        "accent": "#19e619",
+                        "gold": "#fbbf24",
+                        "glass": "rgba(255, 255, 255, 0.08)"
+                    },
+                    fontFamily: {
+                        "display": ["Outfit", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.25rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "2xl": "4rem",
+                        "full": "9999px"
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            },
+        }
+    </script>
+
+</head>
+
+<body class="font-sans bg-black text-white selection:bg-white/20 overflow-x-hidden">
+
+    <!-- WebGL Background Layer -->
+    <canvas id="webgl-canvas" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+
+    <!-- Dynamic Aurora Background (Fallback/Additive) -->
+    <div class="fixed inset-0 z-[-1] opacity-40 blur-[100px] pointer-events-none">
+        <div id="aurora-1"
+            class="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/30 transition-colors duration-1000">
+        </div>
+        <div id="aurora-2"
+            class="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-600/20 transition-colors duration-1000">
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-xl">
+        <div class="glass-main w-full max-w-md mx-4 p-10 rounded-[2.5rem] relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+            <button onclick="closeAuthModal()"
+                class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors z-20">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+
+            <div class="flex gap-6 mb-8 border-b border-white/10 relative z-10">
+                <button id="login-tab" onclick="switchAuthTab('login')"
+                    class="flex-1 pb-4 text-sm font-bold border-b-2 border-white transition-all">Sign In</button>
+                <button id="signup-tab" onclick="switchAuthTab('signup')"
+                    class="flex-1 pb-4 text-sm font-medium text-white/40 border-b-2 border-transparent transition-all">Create
+                    Account</button>
+            </div>
+
+            <form id="login-form" class="space-y-5 relative z-10">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 ml-1">Email
+                        Address</label>
+                    <input type="email" id="login-email" required placeholder="name@example.com"
+                        class="w-full h-14 rounded-2xl glass-input px-6 text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 ml-1">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••"
+                        class="w-full h-14 rounded-2xl glass-input px-6 text-sm">
+                </div>
+                <button type="submit" class="btn-primary w-full mt-4">Sign In</button>
+            </form>
+
+            <form id="signup-form" class="space-y-5 hidden relative z-10">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 ml-1">Username</label>
+                    <input type="text" id="signup-username" required placeholder="coolguy123"
+                        class="w-full h-14 rounded-2xl glass-input px-6 text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 ml-1">Email
+                        Address</label>
+                    <input type="email" id="signup-email" required placeholder="name@example.com"
+                        class="w-full h-14 rounded-2xl glass-input px-6 text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40 ml-1">Password</label>
+                    <input type="password" id="signup-password" required minlength="6" placeholder="••••••••"
+                        class="w-full h-14 rounded-2xl glass-input px-6 text-sm">
+                </div>
+                <button type="submit" class="btn-primary w-full mt-4">Create Studio Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Drawer -->
+    <div id="history-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] hidden"
+        onclick="toggleHistory()"></div>
+    <div id="history-drawer"
+        class="fixed top-0 right-0 bottom-0 w-full md:w-[450px] glass-main z-[100] transform translate-x-full transition-transform duration-500 overflow-y-auto border-l border-white/10 rounded-l-[3rem]">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight">Collection</h2>
+                    <p class="text-xs text-white/40 font-medium">Your creative history</p>
+                </div>
+                <button onclick="toggleHistory()"
+                    class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="flex p-1 bg-white/5 rounded-2xl mb-8">
+                <button onclick="setHistoryFilter('all')" id="tab-all"
+                    class="flex-1 py-3 text-sm font-bold rounded-xl bg-white text-black shadow-lg shadow-white/10 flex items-center justify-center gap-2 transition-all">
+                    <span class="material-symbols-outlined text-sm">grid_view</span> All
+                </button>
+                <button onclick="setHistoryFilter('favorites')" id="tab-favorites"
+                    class="flex-1 py-3 text-sm font-bold rounded-xl text-white/40 hover:text-white flex items-center justify-center gap-2 transition-all">
+                    <span class="material-symbols-outlined text-sm">star</span> Favorites
+                </button>
+            </div>
+
+            <div id="history-list" class="grid grid-cols-2 gap-4">
+                <!-- Populated by app.js -->
+            </div>
+
+            <button onclick="clearHistory()"
+                class="w-full mt-10 py-4 border border-white/5 rounded-2xl text-xs font-bold text-white/20 hover:text-red-400 hover:border-red-400/20 transition-all uppercase tracking-widest">
+                Clear All Creations
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Navigation Top -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-8 py-6 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-3 pointer-events-auto group cursor-pointer"
+            onclick="location.href='landing.html'">
+            <div
+                class="w-10 h-10 rounded-xl bg-white flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-white/20">
+                <span class="material-symbols-outlined text-black font-bold">palette</span>
+            </div>
+            <span class="font-display font-bold text-xl tracking-tight">Studio<span
+                    class="text-white/40">Pro</span></span>
+        </div>
+
+        <div id="user-indicator" class="pointer-events-auto">
+            <!-- Auth logic will inject button here -->
+        </div>
+    </header>
+
+    <!-- App Stage -->
+    <main class="relative z-10 min-h-screen pt-32 pb-40 px-6 flex flex-col items-center justify-start">
+
+        <!-- Creation Card -->
+        <div class="perspective-container w-full max-w-xl">
+            <div id="tilt-wrapper">
+                <div id="main-card" class="split-card-container group">
+                    <!-- Carousel Tracks -->
+                    <div class="absolute inset-0 flex flex-col">
+                        <div class="relative flex-1 overflow-hidden">
+                            <div id="genre-track" class="carousel-track h-full"></div>
+                            <!-- Overlay Info -->
+                            <div class="absolute top-8 left-8 z-20 pointer-events-none">
+                                <p class="text-[10px] font-black tracking-[0.3em] uppercase text-white/30 mb-1">Genre
+                                </p>
+                                <h3 id="genre-label" class="text-2xl font-bold tracking-tight">Cyber City</h3>
+                            </div>
+                            <!-- Arrows -->
+                            <div class="absolute inset-y-0 left-0 w-20 z-30 flex items-center justify-center">
+                                <button onclick="prevSlide('genre')"
+                                    class="w-12 h-12 rounded-full glass-pill flex items-center justify-center opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                            </div>
+                            <div class="absolute inset-y-0 right-0 w-20 z-30 flex items-center justify-center">
+                                <button onclick="nextSlide('genre')"
+                                    class="w-12 h-12 rounded-full glass-pill flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="w-full h-px bg-white/10 z-20"></div>
+
+                        <div class="relative flex-1 overflow-hidden">
+                            <div id="style-track" class="carousel-track h-full"></div>
+                            <!-- Overlay Info -->
+                            <div class="absolute top-8 left-8 z-20 pointer-events-none">
+                                <p class="text-[10px] font-black tracking-[0.3em] uppercase text-white/30 mb-1">Style
+                                </p>
+                                <h3 id="style-label" class="text-2xl font-bold tracking-tight">Minimalist</h3>
+                            </div>
+                            <!-- Arrows -->
+                            <div class="absolute inset-y-0 left-0 w-20 z-30 flex items-center justify-center">
+                                <button onclick="prevSlide('style')"
+                                    class="w-12 h-12 rounded-full glass-pill flex items-center justify-center opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                            </div>
+                            <div class="absolute inset-y-0 right-0 w-20 z-30 flex items-center justify-center">
+                                <button onclick="nextSlide('style')"
+                                    class="w-12 h-12 rounded-full glass-pill flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Center Plus Button -->
+                    <div class="plus-connector group/plus">
+                        <button onclick="randomize()"
+                            class="w-full h-full flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                            <span
+                                class="material-symbols-outlined text-[32px] group-hover/plus:rotate-90 transition-transform duration-500">add</span>
+                        </button>
+                    </div>
+
+                    <!-- Generation Overlay -->
+                    <div id="generation-overlay"
+                        class="absolute inset-0 z-[100] hidden flex flex-col items-center justify-center p-8 text-center backdrop-blur-3xl overflow-hidden">
+                        <canvas id="webgl-generation-canvas" class="absolute inset-0 z-0"></canvas>
+
+                        <div id="generation-status" class="relative z-10 flex flex-col items-center">
+                            <div class="w-24 h-24 mb-6 relative">
+                                <div class="absolute inset-0 border-4 border-white/5 rounded-full"></div>
+                                <div class="absolute inset-0 border-4 border-t-white rounded-full animate-spin"></div>
+                                <div
+                                    class="absolute inset-4 bg-white/10 rounded-full flex items-center justify-center animate-pulse">
+                                    <span class="material-symbols-outlined text-white">auto_awesome</span>
+                                </div>
+                            </div>
+                            <h2 id="loading-text" class="text-2xl font-bold tracking-tight mb-2">Creating Magic</h2>
+                            <p class="text-white/40 text-sm max-w-[250px]">Mixing colors and styles into your custom
+                                masterpiece...</p>
+                        </div>
+
+                        <!-- Result Display in Overlay -->
+                        <img id="generation-result-image"
+                            class="hidden relative z-10 w-full h-full object-contain rounded-2xl shadow-2xl transition-all duration-700 select-none">
+
+                        <!-- Overlay Actions -->
+                        <div id="generation-actions"
+                            class="hidden absolute bottom-10 left-0 right-0 z-20 px-8 flex gap-3">
+                            <button onclick="viewFullResult()" class="btn-primary flex-1">View Full Screen</button>
+                            <button onclick="closeGenerationDisplay()"
+                                class="w-14 h-14 glass-pill flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="w-full max-w-xl mt-10 space-y-8">
+            <!-- Prompt Area -->
+            <div class="relative group">
+                <textarea id="custom-prompt"
+                    class="w-full h-24 rounded-[1.5rem] glass-main glass-input p-6 text-base font-medium placeholder:text-white/20 resize-none transition-all group-hover:border-white/20"
+                    placeholder="Describe your vision... (Optional)"></textarea>
+                <div class="absolute bottom-4 right-4 flex gap-2">
+                    <button onclick="copyPrompt()"
+                        class="w-10 h-10 rounded-full glass-pill hover:bg-white/20 flex items-center justify-center transition-colors"
+                        title="Copy Prompt">
+                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                    </button>
+                    <button onclick="randomize()"
+                        class="w-10 h-10 rounded-full glass-pill hover:bg-white/20 flex items-center justify-center transition-colors"
+                        title="Surprise Me">
+                        <span class="material-symbols-outlined text-sm">shuffle</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Configuration Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <button id="aspect-btn" onclick="toggleAspectRatio()"
+                    class="flex items-center justify-between px-6 py-4 glass-main rounded-2xl hover:bg-white/10 transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-white/40">smartphone</span>
+                        <span class="text-sm font-bold tracking-tight">Aspect Ratio</span>
+                    </div>
+                    <span class="text-[10px] font-black uppercase text-accent">Mobile</span>
+                </button>
+
+                <button onclick="toggleAdvancedControls()"
+                    class="flex items-center justify-between px-6 py-4 glass-main rounded-2xl hover:bg-white/10 transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-white/40">tune</span>
+                        <span class="text-sm font-bold tracking-tight">Advanced</span>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] text-white/40">expand_more</span>
+                </button>
+            </div>
+
+            <!-- Hidden Params -->
+            <input type="hidden" id="width" value="1080">
+            <input type="hidden" id="height" value="1920">
+
+            <!-- Advanced Panel -->
+            <div id="advanced-controls"
+                class="advanced-controls glass-main rounded-3xl p-8 space-y-8 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+
+                <!-- Color Bias -->
+                <div class="space-y-4 relative z-10">
+                    <div class="flex justify-between items-end">
+                        <label class="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Color
+                            Mood</label>
+                        <span id="current-color"
+                            class="text-[10px] font-bold text-accent uppercase tracking-widest leading-none">Vibrant
+                            Defaults</span>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="setColorBias(null)" class="color-dot bg-gray-600 selected border-white">
+                            <span class="material-symbols-outlined text-[12px] opacity-40">close</span>
+                        </button>
+                        <button onclick="setColorBias('neon-blue')" class="color-dot bg-blue-500"></button>
+                        <button onclick="setColorBias('emerald')" class="color-dot bg-emerald-500"></button>
+                        <button onclick="setColorBias('ruby')" class="color-dot bg-red-500"></button>
+                        <button onclick="setColorBias('golden')" class="color-dot bg-amber-400"></button>
+                        <button onclick="setColorBias('ethereal-purple')" class="color-dot bg-fuchsia-600"></button>
+                        <input type="color" id="custom-color-picker" onchange="setCustomColor()"
+                            class="w-7 h-7 bg-transparent rounded-full cursor-pointer overflow-hidden opacity-40 hover:opacity-100 transition-opacity">
+                    </div>
+                </div>
+
+                <!-- Technicals -->
+                <div class="grid grid-cols-2 gap-8 relative z-10">
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Quality
+                            (Steps)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" min="1" max="8" value="4" oninput="updateSteps(this.value)"
+                                class="flex-1 accent-white h-1 rounded-full cursor-pointer">
+                            <span id="steps-value" class="text-sm font-bold w-4">4</span>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black tracking-[0.2em] uppercase text-white/40">Random
+                            Seed</label>
+                        <div class="relative">
+                            <input id="seed-input" type="number" oninput="updateSeed(this.value)" placeholder="Random"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono focus:border-white/20 focus:ring-0">
+                            <button onclick="randomSeed()"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-[16px]">shuffle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary Action -->
+            <button id="generate-button"
+                class="group relative w-full overflow-hidden rounded-full p-[2px] active:scale-[0.98] transition-all">
+                <div
+                    class="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#ffffff_0%,#444444_50%,#ffffff_100%)]">
+                </div>
+                <div
+                    class="relative flex h-16 w-full items-center justify-center rounded-full bg-black hover:bg-black/80 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base font-black uppercase tracking-[0.2em]">Generate Creation</span>
+                        <span
+                            class="material-symbols-outlined text-sm group-hover:rotate-45 transition-transform duration-500">bolt</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Recent Creations Carousel -->
+        <section class="w-full mt-24 max-w-4xl opacity-0 animate-[fadeIn_1s_ease_1s_forwards]">
+            <div class="flex justify-between items-end px-4 mb-8">
+                <div>
+                    <h4 class="text-[10px] font-black tracking-[0.3em] uppercase text-white/40 mb-1">Recent Masterpieces
+                    </h4>
+                    <h3 class="text-xl font-bold tracking-tight">Cloud History</h3>
+                </div>
+                <button onclick="toggleHistory()"
+                    class="group flex items-center gap-2 text-xs font-bold text-white/40 hover:text-white transition-all">
+                    Open Lab Drawer <span
+                        class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </button>
+            </div>
+
+            <div id="recent-history" class="flex gap-6 overflow-x-auto no-scrollbar py-4 px-4 snap-x">
+                <!-- Populated dynamically by app.js -->
+                <div class="flex-shrink-0 w-40 aspect-[9/16] rounded-2xl bg-white/5 animate-pulse"></div>
+                <div class="flex-shrink-0 w-40 aspect-[9/16] rounded-2xl bg-white/5 animate-pulse"></div>
+                <div class="flex-shrink-0 w-40 aspect-[9/16] rounded-2xl bg-white/5 animate-pulse"></div>
+                <div class="flex-shrink-0 w-40 aspect-[9/16] rounded-2xl bg-white/5 animate-pulse"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Navigation Bar Bottom -->
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
+        <nav class="glass-main px-8 py-5 rounded-full flex justify-between items-center shadow-2xl">
+            <button class="flex flex-col items-center gap-1 group text-white">
+                <span class="material-symbols-outlined text-[26px] fill-1">home</span>
+            </button>
+            <a href="community.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">explore</span>
+            </a>
+            <button onclick="randomize()"
+                class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all">
+                <span class="material-symbols-outlined font-bold text-[28px]">add</span>
+            </button>
+            <button onclick="toggleHistory()"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">history</span>
+            </button>
+            <a href="profile.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">person</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-3xl" onclick="closeResult()"></div>
+        <div class="relative w-full max-w-4xl h-[85vh] flex flex-col items-center justify-center">
+
+            <!-- Lock Screen Overlay (Preview) -->
+            <div id="lock-screen-overlay"
+                class="absolute inset-0 z-20 pointer-events-none hidden flex flex-col items-center justify-center text-center">
+                <div class="flex flex-col items-center animate-fadeIn">
+                    <span class="material-symbols-outlined text-[40px] mb-2">lock</span>
+                    <h2 id="lock-time" class="text-7xl font-light tracking-tight mb-2">12:45</h2>
+                    <p id="lock-date" class="text-sm font-medium text-white/60">Monday, January 20</p>
+                </div>
+            </div>
+
+            <div class="relative w-max h-[90%] group">
+                <img id="result-image" src=""
+                    class="h-full w-auto object-contain rounded-3xl shadow-2xl border border-white/10" />
+
+                <!-- Floating Info -->
+                <div class="absolute top-6 left-6 glass-pill px-4 py-2 rounded-full hidden md:flex items-center gap-3">
+                    <span id="result-seed" class="text-[10px] font-mono text-white/60 uppercase">Seed: 827364</span>
+                </div>
+
+                <!-- Color Palette -->
+                <div id="color-palette-container" class="absolute bottom-6 left-6 flex gap-2"></div>
+            </div>
+
+            <!-- Global Result Actions -->
+            <div class="mt-8 flex gap-4 relative z-50">
+                <button id="download-btn" onclick="downloadFromModal()"
+                    class="btn-primary min-w-[180px] flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">download</span> Download HD
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="toggleLockScreen()"
+                        class="w-14 h-14 glass-pill flex items-center justify-center rounded-full hover:bg-white/20 transition-all"
+                        title="Preview Mode">
+                        <span class="material-symbols-outlined">smartphone</span>
+                    </button>
+                    <button id="remix-btn" onclick="remixImage(window.currentGeneratedImage)"
+                        class="w-14 h-14 glass-pill flex items-center justify-center rounded-full hover:bg-white/20 transition-all"
+                        title="Remix This">
+                        <span class="material-symbols-outlined">shuffle</span>
+                    </button>
+                    <button onclick="toggleShareMenu()"
+                        class="w-14 h-14 glass-pill flex items-center justify-center rounded-full hover:bg-white/20 transition-all"
+                        title="Share">
+                        <span class="material-symbols-outlined">share</span>
+                    </button>
+                    <button onclick="closeResult()"
+                        class="w-14 h-14 glass-pill flex items-center justify-center rounded-full hover:text-red-400 hover:bg-red-500/10 transition-all">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Share Menu Popup -->
+            <div id="share-menu" class="share-menu">
+                <button onclick="shareImage('twitter')" class="share-btn text-[#1DA1F2]"><span
+                        class="material-symbols-outlined">public</span></button>
+                <button onclick="shareImage('copy')" class="share-btn text-white"><span
+                        class="material-symbols-outlined">link</span></button>
+                <button onclick="shareImage('download')" class="share-btn text-accent"><span
+                        class="material-symbols-outlined">download</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Fallback Layer -->
+    <div class="fallback-bg"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>

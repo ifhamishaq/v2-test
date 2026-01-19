@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Creator Profile — Wallpaper Studio Pro</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css">
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffffff",
+                        "accent": "#19e619",
+                        "glass": "rgba(255, 255, 255, 0.08)"
+                    },
+                    fontFamily: {
+                        "display": ["Outfit", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.25rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+
+</head>
+
+<body class="font-sans bg-black text-white selection:bg-white/20 overflow-x-hidden">
+
+    <!-- Background -->
+    <div class="fixed inset-0 z-[-1] mesh-gradient opacity-40"></div>
+    <div id="profile-dynamic-bg"
+        class="fixed inset-0 z-[-2] transition-opacity duration-1000 opacity-20 blur-3xl scale-125"
+        style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200'); background-size: cover; background-position: center;">
+    </div>
+
+    <!-- Header Section (Dynamic Profile) -->
+    <header class="relative z-10 pt-24 pb-12 px-6">
+        <div class="max-w-4xl mx-auto flex flex-col items-center">
+
+            <!-- Avatar Area -->
+            <div class="relative group mb-8">
+                <div
+                    class="w-32 h-32 rounded-[2.5rem] border-2 border-white/10 p-1.5 glass-main overflow-hidden shadow-2xl relative">
+                    <img id="profile-avatar" alt="Profile"
+                        class="w-full h-full object-cover rounded-[2rem] group-hover:scale-110 transition-transform duration-700"
+                        src="https://via.placeholder.com/150/333/fff?text=👤" />
+                    <div
+                        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <span class="material-symbols-outlined text-white text-3xl">photo_camera</span>
+                    </div>
+                </div>
+                <label for="avatar-upload"
+                    class="absolute -bottom-2 -right-2 w-10 h-10 bg-white text-black rounded-full flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-xl">
+                    <span class="material-symbols-outlined text-sm font-bold">edit</span>
+                </label>
+                <input type="file" id="avatar-upload" accept="image/*" class="hidden">
+            </div>
+
+            <!-- Identity -->
+            <div class="text-center space-y-2 mb-10">
+                <h1 id="profile-name" class="font-display font-bold text-4xl tracking-tight">---</h1>
+                <p id="profile-username" class="text-xs font-black uppercase tracking-[0.3em] text-white/30">@---</p>
+                <p class="text-sm text-white/50 max-w-sm mx-auto font-medium">Visual Explorer & AI Artist creating
+                    unique desktop and mobile experiences.</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="profile-stat">
+                    <span id="wallpaper-count" class="text-2xl font-bold font-display tracking-tight">0</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Creations</span>
+                </div>
+                <div class="profile-stat">
+                    <span id="views-count" class="text-2xl font-bold font-display tracking-tight">0</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Total Views</span>
+                </div>
+                <div class="profile-stat">
+                    <span id="likes-count" class="text-2xl font-bold font-display tracking-tight">0</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Likes Recv</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative z-10 max-w-5xl mx-auto pb-40 px-6">
+
+        <!-- Tabs -->
+        <div class="flex justify-center gap-1 p-1.5 glass-main rounded-full w-max mx-auto mb-12">
+            <button id="tab-creations" onclick="switchTab('creations')"
+                class="px-8 py-3 rounded-full text-xs font-bold transition-all bg-white text-black shadow-lg shadow-white/10">My
+                Lab</button>
+            <button id="tab-saved" onclick="switchTab('saved')"
+                class="px-8 py-3 rounded-full text-xs font-bold text-white/40 hover:text-white transition-all">Collections</button>
+        </div>
+
+        <!-- Grid Area -->
+        <div id="my-wallpapers-grid"
+            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-[fadeIn_0.8s_ease_out]">
+            <!-- Wallpapers injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="no-wallpapers" class="flex flex-col items-center justify-center py-24 hidden">
+            <div class="w-16 h-16 rounded-3xl glass-main flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-3xl text-white/20">palette</span>
+            </div>
+            <h3 class="text-xl font-bold mb-2">No creations yet</h3>
+            <p class="text-white/40 text-sm mb-8">Ready to start your creative journey?</p>
+            <a href="index.html"
+                class="px-10 py-4 bg-white text-black font-bold rounded-full hover:scale-105 active:scale-95 transition-all">Launch
+                Studio</a>
+        </div>
+    </main>
+
+    <!-- Side Actions -->
+    <div class="fixed top-10 right-10 z-[60]">
+        <button onclick="handleSignOut()"
+            class="w-14 h-14 flex items-center justify-center glass-pill rounded-full hover:bg-red-500/10 hover:text-red-400 transition-all">
+            <span class="material-symbols-outlined">logout</span>
+        </button>
+    </div>
+
+    <!-- Navigation Bar Bottom (Synced) -->
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
+        <nav class="glass-main px-8 py-5 rounded-full flex justify-between items-center shadow-2xl">
+            <a href="index.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">home</span>
+            </a>
+            <a href="community.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">explore</span>
+            </a>
+            <a href="index.html"
+                class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all border-4 border-black">
+                <span class="material-symbols-outlined font-bold text-[28px]">add</span>
+            </a>
+            <a href="index.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">history</span>
+            </a>
+            <button class="flex flex-col items-center gap-1 group text-white">
+                <span class="material-symbols-outlined text-[26px] fill-1 text-accent">person</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/profile.js"></script>
+
+</body>
+
+</html>

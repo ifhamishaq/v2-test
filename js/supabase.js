@@ -103,20 +103,43 @@ export async function updateProfile(updates) {
         const user = await getCurrentUser();
         if (!user) throw new Error('User not authenticated');
 
-        // Check for existing profile to handle NOT NULL constraints on insert
-        const { data: existing } = await supabase
+        console.log('User metadata check:', user.user_metadata);
+
+        // Check for existing profile
+        const { data: existing, error: checkError } = await supabase
             .from('profiles')
             .select('username')
             .eq('id', user.id)
             .maybeSingle();
 
+        if (checkError) console.warn('Profile check error:', checkError);
+
         const payload = { id: user.id, ...updates };
 
         // If profile doesn't exist, we MUST provide a username for the insert
-        if (!existing && !updates.username) {
-            const fallbackUsername = user.user_metadata?.username || user.email.split('@')[0];
-            payload.username = fallbackUsername;
-            if (!updates.display_name) payload.display_name = fallbackUsername;
+        if (!existing) {
+            // Prioritized candidates for username
+            const candidates = [
+                updates.username,
+                user.user_metadata?.username,
+                user.user_metadata?.user_name,
+                user.user_metadata?.full_name?.replace(/\s+/g, '_').toLowerCase(),
+                user.user_metadata?.display_name,
+                user.email?.split('@')[0],
+                `master_${user.id.substring(0, 5)}` // Ultimate fallback
+            ];
+
+            // Find the first non-null, non-undefined, non-empty candidate
+            const username = candidates.find(c => c && typeof c === 'string' && c.trim().length > 0) || `guest_master_${Date.now()}`;
+
+            payload.username = username;
+            if (!updates.display_name) payload.display_name = username;
+
+            console.log('Creating new profile with finalized payload:', payload);
+        } else {
+            // Row exists, but if we are manually providing a username, use it
+            if (updates.username) payload.username = updates.username;
+            console.log('Updating existing profile with finalized payload:', payload);
         }
 
         const { data, error } = await supabase
@@ -125,7 +148,10 @@ export async function updateProfile(updates) {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Upsert failed. Code:', error.code, 'Msg:', error.message);
+            throw error;
+        }
         return { data, error: null };
     } catch (error) {
         console.error('Update profile error:', error);

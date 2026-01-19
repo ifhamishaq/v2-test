@@ -131,10 +131,10 @@ export async function updateProfile(updates) {
 
             // Find the first non-null, non-undefined, non-empty candidate
             const username = candidates.find(c => c && typeof c === 'string' && c.trim().length > 0) || `guest_master_${Date.now()}`;
-
+            
             payload.username = username;
             if (!updates.display_name) payload.display_name = username;
-
+            
             console.log('Creating new profile with finalized payload:', payload);
         } else {
             // Row exists, but if we are manually providing a username, use it

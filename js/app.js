@@ -2,7 +2,7 @@
 
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
-import { uploadWallpaper, getCurrentUser } from './supabase.js';
+import { uploadWallpaper, getCurrentUser, saveWallpaperRecord } from './supabase.js';
 import { showToast } from './toast.js';
 
 // ============================================================================
@@ -1113,7 +1113,11 @@ async function downloadImageDirect(url) {
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         showToast('Download started', 'success');
-    } catch (e) { showToast('Download failed', 'error'); }
+    } catch (e) {
+        console.warn('Direct download failed, falling back to new tab:', e);
+        window.open(url, '_blank');
+        showToast('Download blocked by security. Opened in new tab.', 'info');
+    }
 }
 
 // Export
@@ -1199,9 +1203,6 @@ window.submitToCommunity = async function () {
     showToast('Publishing to community...', 'info');
 
     try {
-        const response = await fetch(window.currentGeneratedImage);
-        const blob = await response.blob();
-
         const genre = GENRES[state.activeGenreIndex].name;
         const style = STYLES[state.activeStyleIndex].name;
 
@@ -1214,20 +1215,29 @@ window.submitToCommunity = async function () {
             seed: window.currentGeneratedSeed,
             width: state.isDesktopMode ? APP_CONFIG.DESKTOP_WIDTH : APP_CONFIG.DEFAULT_WIDTH,
             height: state.isDesktopMode ? APP_CONFIG.DESKTOP_HEIGHT : APP_CONFIG.DEFAULT_HEIGHT,
-            parentId: state.currentParentId // Category C: Include parent ID
+            parentId: state.currentParentId,
+            imageUrl: window.currentGeneratedImage // For fallback
         };
 
-        const { data, error } = await uploadWallpaper(blob, metadata);
+        let result;
+        try {
+            // Attempt to fetch and re-upload to Supabase (Best for ownership)
+            const response = await fetch(window.currentGeneratedImage);
+            if (!response.ok) throw new Error('Fetch failed');
+            const blob = await response.blob();
+            result = await uploadWallpaper(blob, metadata);
+        } catch (fetchError) {
+            // FALLBACK: If CORS blocks fetch (common with R2/external AI), save by direct URL
+            console.warn('CORS/Fetch error, falling back to Direct URL sharing:', fetchError);
+            result = await saveWallpaperRecord(metadata);
+        }
 
-        if (error) throw error;
+        if (result.error) throw result.error;
 
-        showToast('Published successfully!', 'success');
+        showToast('✨ Published to community successfully!', 'success');
         closeCommunityUpload();
-
-        // Optional: Redirect to community or profile?
-        // window.location.href = 'community.html';
     } catch (e) {
-        console.error(e);
+        console.error('Publish error:', e);
         showToast('Failed to publish: ' + (e.message || 'Unknown error'), 'error');
     }
 }

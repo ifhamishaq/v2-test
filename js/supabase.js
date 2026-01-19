@@ -206,6 +206,40 @@ export async function uploadWallpaper(imageBlob, metadata) {
     }
 }
 
+// Save wallpaper metadata without re-uploading (useful for external URLs or CORS issues)
+export async function saveWallpaperRecord(metadata) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const { data, error } = await supabase
+            .from('wallpapers')
+            .insert({
+                user_id: user.id,
+                title: metadata.title,
+                description: metadata.description || '',
+                image_url: metadata.imageUrl,
+                thumbnail_url: metadata.imageUrl, // Fallback to same URL
+                genre: metadata.genre,
+                style: metadata.style,
+                prompt: metadata.prompt,
+                seed: metadata.seed,
+                width: metadata.width || 1920,
+                height: metadata.height || 1080,
+                is_public: metadata.isPublic !== false,
+                parent_id: metadata.parentId || null
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Save record error:', error);
+        return { data: null, error };
+    }
+}
+
 // Increment view count
 export async function incrementViewCount(wallpaperId) {
     try {

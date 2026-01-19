@@ -1,4 +1,4 @@
-import { getCurrentUser, supabase } from './supabase.js';
+import { getCurrentUser, supabase, uploadAvatar, deleteWallpaper } from './supabase.js';
 
 let currentUser = null;
 let currentTab = 'creations';
@@ -23,6 +23,28 @@ async function loadProfile() {
         if (profile.avatar_url) {
             document.getElementById('profile-avatar').src = profile.avatar_url;
         }
+    }
+
+    // Setup Avatar Upload
+    const avatarInput = document.getElementById('avatar-upload');
+    if (avatarInput) {
+        avatarInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show loading state
+            const avatarContainer = avatarInput.closest('.group').querySelector('div');
+            avatarContainer.classList.add('opacity-50');
+
+            const { data, error } = await uploadAvatar(file);
+
+            avatarContainer.classList.remove('opacity-50');
+            if (error) {
+                alert('Upload failed: ' + error.message);
+            } else if (data && data.avatar_url) {
+                document.getElementById('profile-avatar').src = data.avatar_url;
+            }
+        };
     }
 
     const { data: wallpapers } = await supabase
@@ -80,7 +102,12 @@ function renderWallpapers(wallpapers) {
                          <span class="material-symbols-outlined text-[14px]">favorite</span>
                          <span class="text-xs font-bold font-display">${wp.likes_count || 0}</span>
                      </div>
-                     <span class="material-symbols-outlined text-[16px]">visibility</span>
+                     <div class="flex items-center gap-2">
+                         <button class="w-8 h-8 rounded-full glass-main flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all" onclick="event.stopPropagation(); window.deleteItem('${wp.id}')">
+                             <span class="material-symbols-outlined text-[16px]">delete</span>
+                         </button>
+                         <span class="material-symbols-outlined text-[16px]">visibility</span>
+                     </div>
                 </div>
             </div>
         `;
@@ -98,10 +125,10 @@ async function loadSavedWallpapers() {
         .from('saves')
         .select(`
             wallpaper_id,
-            wallpapers (
+                wallpapers(
                 *
             )
-        `)
+                    `)
         .eq('user_id', currentUser.id);
 
     if (error) {
@@ -111,6 +138,17 @@ async function loadSavedWallpapers() {
 
     const wallpapers = savedData.map(item => item.wallpapers).filter(wp => wp !== null);
     renderWallpapers(wallpapers);
+}
+
+window.deleteItem = async function (id) {
+    if (!confirm('Are you sure you want to delete this masterpiece?')) return;
+
+    const { error } = await deleteWallpaper(id);
+    if (error) {
+        alert('Delete failed: ' + error.message);
+    } else {
+        loadProfile(); // Refresh
+    }
 }
 
 window.switchTab = function (tab) {

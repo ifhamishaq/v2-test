@@ -97,6 +97,57 @@ export async function getSession() {
     return session;
 }
 
+// Update profile information
+export async function updateProfile(updates) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', user.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Update profile error:', error);
+        return { data: null, error };
+    }
+}
+
+// Upload avatar image
+export async function uploadAvatar(file) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        // 1. Upload to avatars bucket
+        const { error: uploadError } = await supabase.storage
+            .from('wallpapers') // Using wallpapers bucket with 'avatars/' prefix
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        // 2. Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('wallpapers')
+            .getPublicUrl(filePath);
+
+        // 3. Update profile with new avatar URL
+        return await updateProfile({ avatar_url: publicUrl });
+    } catch (error) {
+        console.error('Upload avatar error:', error);
+        return { data: null, error };
+    }
+}
+
 // =============================================
 // WALLPAPER OPERATIONS
 // =============================================
@@ -161,7 +212,10 @@ export async function fetchWallpapers(options = {}) {
         limit = 20,
         orderBy = 'created_at',
         ascending = false,
-        userId = null
+        userId = null,
+        searchQuery = null,
+        genre = null,
+        style = null
     } = options;
 
     let query = supabase
@@ -182,8 +236,54 @@ export async function fetchWallpapers(options = {}) {
         query = query.eq('user_id', userId);
     }
 
+    if (genre) {
+        query = query.eq('genre', genre);
+    }
+
+    if (style) {
+        query = query.eq('style', style);
+    }
+
+    if (searchQuery) {
+        // Simple search across title, prompt, and description
+        query = query.or(`title.ilike.%${searchQuery}%,prompt.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+    }
+
     const { data, error } = await query;
     return { data, error };
+}
+
+// Delete wallpaper
+export async function deleteWallpaper(wallpaperId) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+
+        // Verify ownership (RLS should handle this, but extra check)
+        const { data: wp, error: fetchError } = await supabase
+            .from('wallpapers')
+            .select('user_id, image_url')
+            .eq('id', wallpaperId)
+            .single();
+
+        if (fetchError || !wp) throw new Error('Wallpaper not found');
+        if (wp.user_id !== user.id) throw new Error('Not authorized to delete this wallpaper');
+
+        // Optional: Delete from storage as well
+        // const storagePath = wp.image_url.split('/wallpapers/')[1];
+        // if (storagePath) await supabase.storage.from('wallpapers').remove([storagePath]);
+
+        const { error } = await supabase
+            .from('wallpapers')
+            .delete()
+            .eq('id', wallpaperId);
+
+        if (error) throw error;
+        return { error: null };
+    } catch (error) {
+        console.error('Delete wallpaper error:', error);
+        return { error };
+    }
 }
 
 // Like/unlike wallpaper

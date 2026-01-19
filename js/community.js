@@ -2,6 +2,8 @@ import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser } from './supab
 
 let currentPage = 0;
 let currentFilter = 'latest';
+let searchQuery = '';
+let currentGenre = null;
 let isLoading = false;
 let hasMore = true;
 
@@ -23,7 +25,9 @@ async function loadWallpapers(reset = false) {
         page: currentPage,
         limit: 20,
         orderBy: orderBy,
-        ascending: false
+        ascending: false,
+        searchQuery: searchQuery,
+        genre: currentGenre
     });
 
     document.getElementById('loading-indicator').classList.toggle('hidden', true);
@@ -209,7 +213,6 @@ window.closeDetailModal = function () {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 };
-
 window.filterGallery = function (filter) {
     currentFilter = filter;
 
@@ -229,6 +232,43 @@ window.filterGallery = function (filter) {
 
     loadWallpapers(true);
 };
+
+window.searchCommunity = function (query) {
+    searchQuery = query;
+    loadWallpapers(true);
+};
+
+window.filterByGenre = function (genre) {
+    // If clicking same tag, clear it (toggle)
+    currentGenre = (currentGenre === genre) ? null : genre;
+
+    // Update UI for tags (optional, if you have tag elements)
+    const tags = document.querySelectorAll('[onclick*="filterByGenre"]');
+    tags.forEach(tag => {
+        const tagValue = tag.getAttribute('onclick').match(/'([^']+)'/)[1];
+        if (tagValue === currentGenre) {
+            tag.classList.add('bg-accent', 'text-black');
+            tag.classList.remove('glass-pill');
+        } else {
+            tag.classList.remove('bg-accent', 'text-black');
+            tag.classList.add('glass-pill');
+        }
+    });
+
+    loadWallpapers(true);
+};
+
+// Add enter key listener for search input if it exists
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('community-search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchCommunity(searchInput.value);
+            }
+        });
+    }
+});
 
 // Scroll logic
 window.addEventListener('scroll', () => {

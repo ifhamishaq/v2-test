@@ -1,7 +1,7 @@
 // --- START OF FILE app.js ---
 
 // Wallpaper Studio Pro - Main Application
-import { GENRES, STYLES, API_CONFIG, APP_CONFIG } from './config.js';
+import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
 
 // ============================================================================
 // STATE MANAGEMENT & GLOBALS

@@ -78,8 +78,8 @@
             <div class="text-center space-y-2 mb-10">
                 <h1 id="profile-name" class="font-display font-bold text-4xl tracking-tight">---</h1>
                 <p id="profile-username" class="text-xs font-black uppercase tracking-[0.3em] text-white/30">@---</p>
-                <p class="text-sm text-white/50 max-w-sm mx-auto font-medium">Visual Explorer & AI Artist creating
-                    unique desktop and mobile experiences.</p>
+                <p id="profile-bio" class="text-sm text-white/50 max-w-sm mx-auto font-medium">Visual Explorer & AI
+                    Artist creating unique masterpieces.</p>
             </div>
 
             <!-- Stats Grid -->
@@ -88,12 +88,18 @@
                     <span id="wallpaper-count" class="text-2xl font-bold font-display tracking-tight">0</span>
                     <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Creations</span>
                 </div>
-                <div class="profile-stat">
-                    <span id="views-count" class="text-2xl font-bold font-display tracking-tight">0</span>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Total Views</span>
+                <div class="profile-stat cursor-pointer group" onclick="switchTab('followers')">
+                    <span id="followers-count"
+                        class="text-2xl font-bold font-display tracking-tight group-hover:text-accent transition-colors">0</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Followers</span>
+                </div>
+                <div class="profile-stat cursor-pointer group" onclick="switchTab('following')">
+                    <span id="following-count"
+                        class="text-2xl font-bold font-display tracking-tight group-hover:text-accent transition-colors">0</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Following</span>
                 </div>
                 <div class="profile-stat">
-                    <span id="likes-count" class="text-2xl font-bold font-display tracking-tight">0</span>
+                    <span id="likes-count" class="text-2xl font-bold font-display tracking-tight text-gold">0</span>
                     <span class="text-[9px] font-black uppercase tracking-widest text-white/30 mt-1">Likes Recv</span>
                 </div>
             </div>
@@ -104,12 +110,16 @@
     <main class="relative z-10 max-w-5xl mx-auto pb-40 px-6">
 
         <!-- Tabs -->
-        <div class="flex justify-center gap-1 p-1.5 glass-main rounded-full w-max mx-auto mb-12">
+        <div class="flex justify-center flex-wrap gap-1 p-1.5 glass-main rounded-full w-max mx-auto mb-12">
             <button id="tab-creations" onclick="switchTab('creations')"
                 class="px-8 py-3 rounded-full text-xs font-bold transition-all bg-white text-black shadow-lg shadow-white/10">My
                 Lab</button>
             <button id="tab-saved" onclick="switchTab('saved')"
                 class="px-8 py-3 rounded-full text-xs font-bold text-white/40 hover:text-white transition-all">Collections</button>
+            <button id="tab-followers" onclick="switchTab('followers')"
+                class="px-8 py-3 rounded-full text-xs font-bold text-white/40 hover:text-white transition-all">Followers</button>
+            <button id="tab-following" onclick="switchTab('following')"
+                class="px-8 py-3 rounded-full text-xs font-bold text-white/40 hover:text-white transition-all">Following</button>
         </div>
 
         <!-- Grid Area -->
@@ -118,13 +128,19 @@
             <!-- Wallpapers injected here -->
         </div>
 
+        <!-- User List Area (Followers/Following) -->
+        <div id="user-list-grid"
+            class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto animate-[fadeIn_0.5s_ease_out]">
+            <!-- Users injected here -->
+        </div>
+
         <!-- Empty State -->
         <div id="no-wallpapers" class="flex flex-col items-center justify-center py-24 hidden">
             <div class="w-16 h-16 rounded-3xl glass-main flex items-center justify-center mb-6">
                 <span class="material-symbols-outlined text-3xl text-white/20">palette</span>
             </div>
-            <h3 class="text-xl font-bold mb-2">No creations yet</h3>
-            <p class="text-white/40 text-sm mb-8">Ready to start your creative journey?</p>
+            <h3 class="text-xl font-bold mb-2">Nothing here yet</h3>
+            <p id="empty-message" class="text-white/40 text-sm mb-8">Ready to start your creative journey?</p>
             <a href="index.html"
                 class="px-10 py-4 bg-white text-black font-bold rounded-full hover:scale-105 active:scale-95 transition-all">Launch
                 Studio</a>
@@ -132,9 +148,13 @@
     </main>
 
     <!-- Side Actions -->
-    <div class="fixed top-10 right-10 z-[60]">
+    <div class="fixed top-10 right-10 z-[60] flex flex-col gap-4">
+        <button onclick="openSettings()"
+            class="w-14 h-14 flex items-center justify-center glass-pill rounded-full hover:bg-white/10 transition-all text-white/60 hover:text-white shadow-xl">
+            <span class="material-symbols-outlined">settings</span>
+        </button>
         <button onclick="handleSignOut()"
-            class="w-14 h-14 flex items-center justify-center glass-pill rounded-full hover:bg-red-500/10 hover:text-red-400 transition-all">
+            class="w-14 h-14 flex items-center justify-center glass-pill rounded-full hover:bg-red-500/10 hover:text-red-400 transition-all shadow-xl">
             <span class="material-symbols-outlined">logout</span>
         </button>
     </div>
@@ -164,8 +184,131 @@
         </nav>
     </div>
 
+    <!-- Wallpaper Detail Modal (Masterpiece Design) -->
+    <div id="wallpaper-detail-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-3xl" onclick="closeDetailModal()"></div>
+        <div
+            class="relative w-full max-w-5xl glass-main rounded-[3rem] overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto max-h-[90vh] border border-white/10 shadow-2xl animate-[scaleIn_0.3s_ease_out]">
+            <!-- Left: Image Viewport -->
+            <div class="flex-[3] relative bg-black/50 group overflow-hidden">
+                <img id="detail-image" class="w-full h-full object-contain" src="" alt="">
+                <div class="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent pointer-events-none"></div>
+                <button onclick="closeDetailModal()"
+                    class="absolute top-6 left-6 w-12 h-12 glass-pill flex items-center justify-center hover:bg-white/20 transition-all z-20">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+            </div>
+
+            <!-- Right: Details & Actions -->
+            <div class="flex-[2] flex flex-col p-8 md:p-12 overflow-y-auto no-scrollbar relative">
+                <div class="mb-10 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <img id="detail-avatar" src=""
+                            class="w-12 h-12 rounded-2xl object-cover border border-white/10">
+                        <div class="flex flex-col">
+                            <span id="detail-display-name" class="font-bold text-base">Creator</span>
+                            <span id="detail-username" class="text-xs text-white/40">@username</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <h2 id="detail-title" class="text-3xl font-bold font-display tracking-tight mb-4">Masterpiece Title
+                    </h2>
+                    <p id="detail-desc" class="text-sm text-white/60 leading-relaxed font-medium">A stunning creation
+                        from the lab.</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 mb-12 py-8 border-y border-white/5">
+                    <div class="text-center">
+                        <span id="detail-likes-count" class="block text-xl font-bold font-display">0</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Likes</span>
+                    </div>
+                    <div class="text-center border-x border-white/5">
+                        <span id="detail-views-count" class="block text-xl font-bold font-display">0</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Views</span>
+                    </div>
+                    <div class="text-center">
+                        <span id="detail-downloads-count" class="block text-xl font-bold font-display">0</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Seeds</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <button id="detail-download-main"
+                        class="w-full py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-xl">
+                        <span class="material-symbols-outlined text-sm">download</span> Download HD
+                    </button>
+                    <div class="flex gap-4">
+                        <button id="detail-delete-btn"
+                            class="flex-1 py-5 bg-red-500/10 text-red-500 font-black uppercase tracking-widest text-[10px] rounded-2xl border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm">delete</span> Delete
+                        </button>
+                        <button id="detail-share-btn"
+                            class="w-14 h-14 glass-main rounded-2xl flex items-center justify-center hover:bg-white/10 transition-all">
+                            <span class="material-symbols-outlined">share</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-xl" onclick="closeSettings()"></div>
+        <div
+            class="relative w-full max-w-md glass-main rounded-[3rem] p-10 border border-white/10 shadow-2xl animate-[scaleIn_0.3s_ease_out]">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold tracking-tight">App Settings</h2>
+                <p class="text-[10px] font-black uppercase tracking-widest text-accent mt-2">Customization & Profile</p>
+            </div>
+
+            <div class="space-y-8">
+                <!-- Profile Section -->
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Profile
+                        Details</label>
+                    <div class="space-y-3">
+                        <div class="glass-pill px-6 py-4 flex items-center gap-4">
+                            <span class="material-symbols-outlined text-white/40 text-sm">person</span>
+                            <input type="text" id="settings-display-name"
+                                class="bg-transparent border-none p-0 text-sm w-full outline-none"
+                                placeholder="Display Name">
+                        </div>
+                        <div class="glass-pill px-6 py-4 flex items-center gap-4">
+                            <span class="material-symbols-outlined text-white/40 text-sm">alternate_email</span>
+                            <input type="text" id="settings-username"
+                                class="bg-transparent border-none p-0 text-sm w-full outline-none"
+                                placeholder="Username">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theme / Preferences -->
+                <div class="space-y-4">
+                    <label
+                        class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-4">Preferences</label>
+                    <div class="flex items-center justify-between glass-pill px-6 py-4">
+                        <span class="text-sm font-bold">Dark Mode</span>
+                        <div class="w-12 h-6 bg-accent rounded-full relative p-1 cursor-pointer">
+                            <div class="w-4 h-4 bg-white rounded-full absolute right-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button onclick="closeSettings()"
+                        class="flex-1 py-4 glass-pill text-xs font-bold hover:bg-white/5 transition-all">Cancel</button>
+                    <button onclick="saveSettings()"
+                        class="flex-1 py-4 bg-white text-black text-xs font-bold rounded-full shadow-lg hover:scale-105 transition-all">Save
+                        Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script type="module" src="js/supabase.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/profile.js"></script>
 

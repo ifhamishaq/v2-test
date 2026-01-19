@@ -140,6 +140,58 @@
         </div>
     </div>
 
+    <!-- Email Confirmation Modal -->
+    <div id="email-confirmation-modal"
+        class="fixed inset-0 z-[110] hidden items-center justify-center bg-black/80 backdrop-blur-xl">
+        <div
+            class="glass-main w-full max-w-md mx-4 p-10 rounded-[2.5rem] relative overflow-hidden animate-[scaleIn_0.3s_ease_out]">
+            <div class="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none"></div>
+
+            <div class="relative z-10 text-center">
+                <!-- Animated Checkmark Icon -->
+                <div class="w-20 h-20 mx-auto mb-6 relative">
+                    <div class="absolute inset-0 bg-accent/20 rounded-full animate-ping"></div>
+                    <div class="absolute inset-0 bg-accent/10 rounded-full flex items-center justify-center">
+                        <span
+                            class="material-symbols-outlined text-accent text-4xl animate-[bounce_1s_ease-in-out_infinite]">mark_email_unread</span>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold tracking-tight mb-3">Check Your Email!</h2>
+                <p class="text-white/60 text-sm leading-relaxed mb-2">
+                    We've sent a confirmation link to
+                </p>
+                <p id="confirmation-email" class="text-accent font-bold text-sm mb-6">your@email.com</p>
+
+                <div class="glass-pill p-4 rounded-2xl mb-8 text-left">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Next Steps:</p>
+                    <ol class="space-y-2 text-xs text-white/70">
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-accent text-sm mt-0.5">check_circle</span>
+                            <span>Open your email inbox</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-accent text-sm mt-0.5">check_circle</span>
+                            <span>Click the verification link</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-accent text-sm mt-0.5">check_circle</span>
+                            <span>Return here to sign in</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <button onclick="closeEmailConfirmation()" class="btn-primary w-full">
+                    Got It!
+                </button>
+
+                <p class="text-[10px] text-white/30 mt-4 uppercase tracking-widest">
+                    Didn't receive it? Check your spam folder
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- History Drawer -->
     <div id="history-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] hidden"
         onclick="toggleHistory()"></div>
@@ -593,7 +645,6 @@
     <div class="fallback-bg"></div>
 
     <!-- Scripts -->
-    <script type="module" src="js/supabase.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/app.js"></script>
 

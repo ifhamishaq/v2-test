@@ -80,7 +80,7 @@ export async function signInWithGitHub() {
 export async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (!error) {
-        window.location.reload();
+        window.location.href = 'landing.html';
     }
     return { error };
 }
@@ -192,7 +192,8 @@ export async function uploadWallpaper(imageBlob, metadata) {
                 seed: metadata.seed,
                 width: metadata.width || 1920,
                 height: metadata.height || 1080,
-                is_public: metadata.isPublic !== false
+                is_public: metadata.isPublic !== false,
+                parent_id: metadata.parentId || null // Track remix lineage
             })
             .select()
             .single();
@@ -202,6 +203,19 @@ export async function uploadWallpaper(imageBlob, metadata) {
     } catch (error) {
         console.error('Upload error:', error);
         return { data: null, error };
+    }
+}
+
+// Increment view count
+export async function incrementViewCount(wallpaperId) {
+    try {
+        const { error } = await supabase.rpc('increment_view_count', {
+            wallpaper_id: wallpaperId
+        });
+        if (error) throw error;
+    } catch (error) {
+        // Silent fail for analytics
+        console.warn('Analytics error:', error);
     }
 }
 
@@ -226,6 +240,13 @@ export async function fetchWallpapers(options = {}) {
                 username,
                 display_name,
                 avatar_url
+            ),
+            parent:wallpapers!parent_id (
+                id,
+                title,
+                profiles (
+                   username
+                )
             )
         `)
         .eq('is_public', true)
@@ -405,6 +426,106 @@ export async function fetchComments(wallpaperId) {
         .eq('wallpaper_id', wallpaperId)
         .order('created_at', { ascending: true });
 
+    return { data, error };
+}
+
+// =============================================
+// SOCIAL & NOTIFICATIONS
+// =============================================
+
+// Toggle Follow User
+export async function toggleFollow(targetUserId) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        if (user.id === targetUserId) throw new Error('Cannot follow yourself');
+
+        // Check if already following
+        const { data: existing } = await supabase
+            .from('follows')
+            .select('id')
+            .eq('follower_id', user.id)
+            .eq('following_id', targetUserId)
+            .single();
+
+        if (existing) {
+            // Unfollow
+            const { error } = await supabase
+                .from('follows')
+                .delete()
+                .eq('id', existing.id);
+            return { following: false, error };
+        } else {
+            // Follow
+            const { error } = await supabase
+                .from('follows')
+                .insert({
+                    follower_id: user.id,
+                    following_id: targetUserId
+                });
+            return { following: true, error };
+        }
+    } catch (error) {
+        console.error('Toggle follow error:', error);
+        return { following: false, error };
+    }
+}
+
+// Check Follow Status
+export async function checkFollowStatus(targetUserId) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return { following: false };
+
+        const { data } = await supabase
+            .from('follows')
+            .select('id')
+            .eq('follower_id', user.id)
+            .eq('following_id', targetUserId)
+            .single();
+
+        return { following: !!data };
+    } catch (error) {
+        return { following: false };
+    }
+}
+
+// Fetch Notifications
+export async function fetchNotifications() {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return { data: [], error: 'Not authenticated' };
+
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        return { data, error };
+    } catch (error) {
+        console.error('Fetch notifications error:', error);
+        return { data: [], error };
+    }
+}
+
+// Mark Notification Read
+export async function markNotificationRead(notificationId) {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+    return { error };
+}
+
+// Fetch Public User Profile
+export async function fetchPublicProfile(username) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
     return { data, error };
 }
 

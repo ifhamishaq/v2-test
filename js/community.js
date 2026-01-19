@@ -1,4 +1,4 @@
-import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser } from './supabase.js';
+import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, fetchComments, addComment, subscribeToWallpapers } from './supabase.js';
 
 let currentPage = 0;
 let currentFilter = 'latest';
@@ -7,7 +7,27 @@ let currentGenre = null;
 let isLoading = false;
 let hasMore = true;
 
+let subscription = null;
+
+// Init Realtime
+if (!subscription) {
+    subscription = subscribeToWallpapers((payload) => {
+        // Show "New Wallpapers" toast
+        const toast = document.getElementById('new-wallpapers-toast');
+        if (toast) {
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+        }
+    });
+}
+
 async function loadWallpapers(reset = false) {
+    if (reset) {
+        // Hide toast if refreshing
+        const toast = document.getElementById('new-wallpapers-toast');
+        if (toast) toast.classList.add('hidden');
+    }
+
     if (isLoading || (!hasMore && !reset)) return;
 
     isLoading = true;
@@ -16,9 +36,11 @@ async function loadWallpapers(reset = false) {
         hasMore = true;
         const grid = document.getElementById('gallery-grid');
         grid.style.opacity = '0';
+        grid.innerHTML = ''; // Clear for reset
+        document.getElementById('skeleton-grid').classList.remove('hidden');
     }
 
-    document.getElementById('loading-indicator').classList.toggle('hidden', false);
+    document.getElementById('loading-indicator').classList.toggle('hidden', currentPage !== 0); // Only show text after first page
 
     const orderBy = currentFilter === 'latest' ? 'created_at' : 'likes_count';
     const { data, error } = await fetchWallpapers({
@@ -31,6 +53,7 @@ async function loadWallpapers(reset = false) {
     });
 
     document.getElementById('loading-indicator').classList.toggle('hidden', true);
+    document.getElementById('skeleton-grid').classList.add('hidden');
 
     if (error) {
         console.error('Error loading wallpapers:', error);
@@ -60,6 +83,12 @@ async function loadWallpapers(reset = false) {
 
     currentPage++;
     isLoading = false;
+
+    if (data.length < 20) {
+        hasMore = false;
+        const endIndicator = document.getElementById('end-of-gallery');
+        if (endIndicator) endIndicator.classList.remove('hidden');
+    }
 }
 
 function renderWallpapers(wallpapers) {
@@ -102,6 +131,9 @@ window.showDetailModal = function (wallpaper) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
+    // Category C: Track Analytics
+    incrementViewCount(wallpaper.id);
+
     // Set data
     document.getElementById('detail-bg-image').src = wallpaper.image_url;
     document.getElementById('detail-artist-name').textContent = wallpaper.profiles?.username || 'Anonymous';
@@ -114,6 +146,30 @@ window.showDetailModal = function (wallpaper) {
     document.getElementById('detail-likes-count').textContent = formatCount(wallpaper.likes_count || 0);
     document.getElementById('detail-downloads-count').textContent = formatCount(wallpaper.downloads_count || 0);
 
+    // Category C: Display Remix Lineage
+    const lineageBox = document.getElementById('remix-lineage');
+    const parentNameSpan = document.getElementById('parent-artist-name');
+    if (wallpaper.parent && wallpaper.parent.profiles) {
+        lineageBox.classList.remove('hidden');
+        parentNameSpan.textContent = wallpaper.parent.profiles.username;
+        // Optional: click to see parent
+        parentNameSpan.onclick = () => {
+            // Fetch parent details or just show this one?
+            // For now just keep it simple
+        };
+    } else {
+        lineageBox.classList.add('hidden');
+    }
+
+    // Category 1: Load Comments
+    loadComments(wallpaper.id);
+
+    // Setup comments submit
+    document.getElementById('comment-submit-btn').onclick = () => handleCommentSubmit(wallpaper.id);
+    document.getElementById('comment-input').onkeypress = (e) => {
+        if (e.key === 'Enter') handleCommentSubmit(wallpaper.id);
+    };
+
     // Setup buttons
     document.getElementById('detail-download-main').onclick = () => downloadImage(wallpaper.image_url, wallpaper.title);
 
@@ -123,7 +179,8 @@ window.showDetailModal = function (wallpaper) {
             genre: wallpaper.genre || '',
             style: wallpaper.style || '',
             prompt: wallpaper.prompt || '',
-            seed: wallpaper.seed || ''
+            seed: wallpaper.seed || '',
+            parentId: wallpaper.id // Category C: Pass parent ID for lineage
         });
         window.location.href = `index.html?${params.toString()}`;
     };
@@ -276,6 +333,66 @@ window.addEventListener('scroll', () => {
         loadWallpapers();
     }
 });
+
+
+// Helper: Comments Logic
+async function loadComments(wallpaperId) {
+    const list = document.getElementById('comments-list');
+    list.innerHTML = '<div class="text-[10px] text-white/40 italic animate-pulse">Loading discussion...</div>';
+
+    const { data, error } = await fetchComments(wallpaperId);
+
+    if (error || !data || data.length === 0) {
+        list.innerHTML = '<div class="text-[10px] text-white/40 italic">No comments yet. Be the first to share your thoughts!</div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    data.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'flex gap-3 items-start p-2 rounded-lg hover:bg-white/5 transition-colors';
+        div.innerHTML = `
+            <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+                <img src="${c.profiles?.avatar_url || 'https://via.placeholder.com/30'}" class="w-full h-full object-cover">
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-white/80">${c.profiles?.username || 'User'}</span>
+                    <span class="text-[8px] text-white/20">${new Date(c.created_at).toLocaleDateString()}</span>
+                </div>
+                <p class="text-xs text-white/70 leading-relaxed mt-0.5">${c.content}</p>
+            </div>
+         `;
+        list.appendChild(div);
+    });
+}
+
+async function handleCommentSubmit(wallpaperId) {
+    const input = document.getElementById('comment-input');
+    const content = input.value.trim();
+    if (!content) return;
+
+    const user = await getCurrentUser();
+    if (!user) {
+        if (window.openAuthModal) window.openAuthModal();
+        return;
+    }
+
+    // Optimistic UI update could go here, but let's wait for server for simplicity
+    input.value = '';
+    input.placeholder = 'Posting...';
+
+    const { error } = await addComment(wallpaperId, content);
+
+    input.placeholder = 'Add a comment...';
+
+    if (error) {
+        console.error(error);
+        alert('Failed to post comment. Please try again.');
+    } else {
+        loadComments(wallpaperId);
+    }
+}
 
 // Init
 loadWallpapers();

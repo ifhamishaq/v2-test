@@ -2,6 +2,7 @@
 
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
+import { uploadWallpaper, getCurrentUser } from './supabase.js';
 
 // ============================================================================
 // STATE MANAGEMENT & GLOBALS
@@ -17,7 +18,8 @@ const state = {
     seed: null,
     numSteps: 4,
     historyFilter: 'all',
-    isPromptManuallyEdited: false
+    isPromptManuallyEdited: false,
+    currentParentId: null // Category C: Track remix parent
 };
 
 // Global WebGL Variables
@@ -105,6 +107,8 @@ window.onload = () => {
         state.seed = parseInt(remixSeed);
         document.getElementById('seed-input').value = remixSeed;
     }
+    const remixParent = urlParams.get('parentId');
+    if (remixParent) state.currentParentId = remixParent;
 
     // 3. UI Initialization
     initCarousel();
@@ -813,20 +817,19 @@ function updateTime() {
 function showResult(url, seed = null) {
     const modal = document.getElementById('result-modal');
     const img = document.getElementById('result-image');
-    const link = document.getElementById('download-link');
     const seedDisplay = document.getElementById('result-seed');
 
     // Category C: Set crossOrigin for Color Extraction
     img.crossOrigin = "anonymous";
     img.src = url;
 
-    link.href = url;
     if (seedDisplay && seed) {
         seedDisplay.textContent = `Seed: ${seed}`;
-        seedDisplay.classList.remove('hidden');
+        seedDisplay.parentElement.classList.remove('hidden');
     }
     document.getElementById('lock-screen-overlay').classList.add('hidden');
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
 
     // Category C: Extract Colors when image is loaded
     img.onload = () => extractColors(img);
@@ -886,7 +889,9 @@ function extractColors(imgElement) {
 }
 
 function closeResult() {
-    document.getElementById('result-modal').classList.add('hidden');
+    const modal = document.getElementById('result-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 
 // ============================================================================
@@ -1161,6 +1166,78 @@ window.closeGenerationDisplay = closeGenerationDisplay;
 window.viewFullResult = viewFullResult;
 window.downloadGenerated = downloadGenerated;
 window.remixImage = remixImage;
+
+window.openCommunityUpload = async function () {
+    if (!window.currentGeneratedImage) {
+        showToast('Please generate a masterpiece first!', 'warning');
+        return;
+    }
+
+    const user = await getCurrentUser();
+    if (!user) {
+        if (window.openAuthModal) window.openAuthModal();
+        return;
+    }
+
+    const modal = document.getElementById('community-upload-modal');
+    const preview = document.getElementById('upload-preview');
+    preview.src = window.currentGeneratedImage;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+window.closeCommunityUpload = function () {
+    const modal = document.getElementById('community-upload-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+window.submitToCommunity = async function () {
+    const title = document.getElementById('upload-title').value;
+    const desc = document.getElementById('upload-desc').value;
+
+    if (!title) {
+        showToast('Please give your masterpiece a title', 'warning');
+        return;
+    }
+
+    showToast('Publishing to community...', 'info');
+
+    try {
+        const response = await fetch(window.currentGeneratedImage);
+        const blob = await response.blob();
+
+        const genre = GENRES[state.activeGenreIndex].name;
+        const style = STYLES[state.activeStyleIndex].name;
+
+        const metadata = {
+            title: title,
+            description: desc,
+            genre: genre,
+            style: style,
+            prompt: document.getElementById('custom-prompt').value || 'AI Generated',
+            seed: window.currentGeneratedSeed,
+            width: state.isDesktopMode ? APP_CONFIG.DESKTOP_WIDTH : APP_CONFIG.DEFAULT_WIDTH,
+            height: state.isDesktopMode ? APP_CONFIG.DESKTOP_HEIGHT : APP_CONFIG.DEFAULT_HEIGHT,
+            parentId: state.currentParentId // Category C: Include parent ID
+        };
+
+        const { data, error } = await uploadWallpaper(blob, metadata);
+
+        if (error) throw error;
+
+        showToast('Published successfully!', 'success');
+        closeCommunityUpload();
+
+        // Optional: Redirect to community or profile?
+        // window.location.href = 'community.html';
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to publish: ' + (e.message || 'Unknown error'), 'error');
+    }
+}
+
 window.downloadFromModal = async function () {
     const url = document.getElementById('result-image').src;
     if (url) await downloadImageDirect(url);

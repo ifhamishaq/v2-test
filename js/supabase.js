@@ -347,14 +347,23 @@ export async function fetchWallpapers(options = {}) {
                 display_name,
                 avatar_url
             )
-        `)
-        .eq('is_public', true)
-        .order(orderBy, { ascending })
-        .range(page * limit, (page + 1) * limit - 1);
+        `);
 
-    if (userId) {
+    // Privacy Logic: Show public images OR user's own private images
+    const user = await getCurrentUser();
+    if (userId && user && user.id === userId) {
+        // Fetching own images: show everything
         query = query.eq('user_id', userId);
+    } else if (userId) {
+        // Fetching someone else's: only public
+        query = query.eq('user_id', userId).eq('is_public', true);
+    } else {
+        // Global feed: only public
+        query = query.eq('is_public', true);
     }
+
+    query = query.order(orderBy, { ascending })
+        .range(page * limit, (page + 1) * limit - 1);
 
     if (genre) {
         query = query.eq('genre', genre);
@@ -626,6 +635,39 @@ export async function fetchPublicProfile(username) {
         .eq('username', username)
         .single();
     return { data, error };
+}
+
+// Fetch user stats (creations, views, followers)
+export async function fetchUserStats(userId) {
+    try {
+        // Creations and View counts from wallpapers table
+        const { data: wpData } = await supabase
+            .from('wallpapers')
+            .select('views_count')
+            .eq('user_id', userId)
+            .eq('is_public', true);
+
+        const creationsCount = wpData?.length || 0;
+        const totalViews = wpData?.reduce((sum, wp) => sum + (wp.views_count || 0), 0) || 0;
+
+        // Followers count from follows table
+        const { count: followersCount } = await supabase
+            .from('follows')
+            .select('*', { count: 'exact', head: true })
+            .eq('following_id', userId);
+
+        return {
+            data: {
+                creationsCount,
+                totalViews,
+                followersCount: followersCount || 0
+            },
+            error: null
+        };
+    } catch (error) {
+        console.error('Fetch user stats error:', error);
+        return { data: null, error };
+    }
 }
 
 // =============================================

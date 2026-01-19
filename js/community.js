@@ -1,4 +1,4 @@
-import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, incrementDownloadCount, checkUserInteractions, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile } from './supabase.js';
+import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, incrementDownloadCount, checkUserInteractions, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile, fetchUserStats } from './supabase.js';
 import { showToast } from './toast.js';
 
 let currentPage = 0;
@@ -139,27 +139,68 @@ window.openUserProfile = async function (username) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    // Load data
+    // UI elements
     const avatar = document.getElementById('public-profile-avatar');
     const name = document.getElementById('public-profile-name');
     const handle = document.getElementById('public-profile-username');
+    const grid = document.getElementById('public-profile-grid');
+    const creationsCount = document.getElementById('public-profile-wallpapers-count');
+    const followersCount = document.getElementById('public-profile-followers-count');
+    const totalViews = document.getElementById('public-profile-views-count');
 
-    // Reset
+    // Reset UI
     name.textContent = 'Loading...';
+    handle.textContent = `@${username}`;
     avatar.src = 'https://via.placeholder.com/150';
+    grid.innerHTML = '<div class="col-span-full py-20 text-center animate-pulse text-white/20 uppercase tracking-[0.2em] font-black text-xs">Curating Masterpieces...</div>';
+    creationsCount.textContent = '0';
+    followersCount.textContent = '0';
+    totalViews.textContent = '0';
 
+    // 1. Fetch Profile
     const { data: profile } = await fetchPublicProfile(username);
+    if (!profile) {
+        showToast('Artist not found', 'error');
+        closeUserProfileModal();
+        return;
+    }
 
-    if (profile) {
-        name.textContent = profile.display_name || username;
-        handle.textContent = '@' + username;
-        avatar.src = profile.avatar_url || 'https://via.placeholder.com/150';
+    // 2. Load Stats
+    const { data: stats } = await fetchUserStats(profile.id);
 
-        // Load stats/grid (mock for now or implement fetchUserWallpapers)
-        // For minimal scope, let's just update the follow button status
-        updateFollowButton('public-follow-btn', profile.id);
+    // Update Stats UI
+    name.textContent = profile.display_name || username;
+    avatar.src = profile.avatar_url || 'https://via.placeholder.com/150';
+    if (stats) {
+        creationsCount.textContent = formatCount(stats.creationsCount);
+        followersCount.textContent = formatCount(stats.followersCount);
+        totalViews.textContent = formatCount(stats.totalViews);
+    }
 
-        document.getElementById('public-follow-btn').onclick = () => handleFollowClick('public-follow-btn', profile.id);
+    // 3. Follow Button logic
+    updateFollowButton('public-follow-btn', profile.id);
+    document.getElementById('public-follow-btn').onclick = () => handleFollowClick('public-follow-btn', profile.id);
+
+    // 4. Load & Render User's Wallpapers
+    const { data: userWps } = await fetchWallpapers({ userId: profile.id, limit: 12 });
+
+    if (userWps && userWps.length > 0) {
+        grid.innerHTML = '';
+        userWps.forEach((wp, idx) => {
+            const card = document.createElement('div');
+            card.className = 'masonry-item group/mini cursor-pointer relative overflow-hidden rounded-xl aspect-[9/16] animate-[fadeIn_0.5s_ease_out_forwards]';
+            card.style.animationDelay = `${idx * 0.05}s`;
+            card.onclick = () => showDetailModal(wp);
+            card.innerHTML = `
+                <img src="${wp.thumbnail_url || wp.image_url}" class="w-full h-full object-cover transition-transform duration-500 group-hover/mini:scale-110">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/mini:opacity-100 transition-opacity flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-sm">visibility</span>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    } else {
+        grid.innerHTML = '<div class="col-span-full py-20 text-center text-white/20 uppercase tracking-widest text-[10px] font-bold">No public creations yet</div>';
     }
 };
 

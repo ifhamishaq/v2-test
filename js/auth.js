@@ -94,12 +94,28 @@ document.getElementById('signup-form')?.addEventListener('submit', async (e) => 
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     } else {
-        // Success!
+        // Success! Show email confirmation modal
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
         closeAuthModal();
-        showToast('Account created! Please check your email to confirm.', 'success', 5000);
-        // Note: User needs to confirm email before they can login
+        openEmailConfirmation(email);
     }
 });
+
+// Email confirmation modal functions
+window.openEmailConfirmation = function (email) {
+    const modal = document.getElementById('email-confirmation-modal');
+    const emailDisplay = document.getElementById('confirmation-email');
+    if (emailDisplay) emailDisplay.textContent = email;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.closeEmailConfirmation = function () {
+    const modal = document.getElementById('email-confirmation-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
 
 // Update UI based on auth state
 function updateUserUI(user) {

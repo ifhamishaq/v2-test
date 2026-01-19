@@ -2,7 +2,7 @@
 
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
-import { uploadWallpaper, getCurrentUser, saveWallpaperRecord } from './supabase.js';
+import { uploadWallpaper, getCurrentUser, saveWallpaperRecord, fetchWallpapers, deleteWallpaper, onAuthStateChange } from './supabase.js';
 import { showToast } from './toast.js';
 
 // ============================================================================
@@ -84,7 +84,19 @@ window.onload = () => {
     const remixParent = urlParams.get('parentId');
     if (remixParent) state.currentParentId = remixParent;
 
-    // 3. UI Initialization
+    // 3. Auth Listener & Initial Sync
+    onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN') {
+            console.log('User signed in, refreshing history');
+            renderHistory();
+            renderRecentHistory();
+        } else if (event === 'SIGNED_OUT') {
+            renderHistory();
+            renderRecentHistory();
+        }
+    });
+
+    // 4. UI Initialization
     initCarousel();
     initSwipeGestures();
     initParallax();
@@ -620,24 +632,35 @@ function saveToHistory(url, genreName, styleName, prompt, seed) {
     renderRecentHistory();
 }
 
-function renderRecentHistory() {
-    const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+async function renderRecentHistory() {
     const container = document.getElementById('recent-history');
     if (!container) return;
 
+    let history = [];
+    const user = await getCurrentUser();
+
+    if (user) {
+        // Fetch from DB if user logged in
+        const { data } = await fetchWallpapers({ userId: user.id, limit: 8 });
+        history = data || [];
+    } else {
+        // Fallback to local for guests
+        history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+    }
+
     container.innerHTML = '';
     if (history.length === 0) {
-        container.innerHTML = '<div class="text-white/20 text-xs py-10 uppercase tracking-widest">No Creations Yet</div>';
+        container.innerHTML = '<div class="text-white/20 text-xs py-10 uppercase tracking-widest w-full text-center">No Creations Yet</div>';
         return;
     }
 
-    history.slice(0, 8).forEach(item => {
+    history.forEach(item => {
         const card = document.createElement('div');
         card.className = 'flex-shrink-0 w-32 md:w-40 aspect-[9/16] rounded-2xl overflow-hidden glass-main border border-white/5 relative group cursor-pointer snap-start';
-        card.onclick = () => showResult(item.url, item.seed);
+        card.onclick = () => showResult(item.image_url || item.url, item.seed);
 
         card.innerHTML = `
-            <img src="${item.url}" class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-700">
+            <img src="${item.thumbnail_url || item.image_url || item.url}" class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-700">
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
             <div class="absolute bottom-3 left-3">
                 <p class="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1">${item.genre}</p>
@@ -661,66 +684,76 @@ function clearHistory() {
 
 // In app.js, replace the renderHistory function with this:
 
-function renderHistory() {
-    let history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+async function renderHistory() {
     const list = document.getElementById('history-list');
+    if (!list) return;
+
+    let history = [];
+    const user = await getCurrentUser();
+
+    if (user) {
+        // Fetch from DB
+        const { data } = await fetchWallpapers({ userId: user.id });
+        history = data || [];
+        // Map fields to match history format if needed, but fetchWallpapers returns DB format
+    } else {
+        // Guest mode
+        history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+    }
 
     historyObserver.disconnect();
     list.innerHTML = '';
 
     if (state.historyFilter === 'favorites') {
-        history = history.filter(item => state.favorites.includes(item.url));
+        history = history.filter(item => state.favorites.includes(item.image_url || item.url));
     }
 
     if (history.length === 0) {
         list.innerHTML = `
             <div class="flex flex-col items-center justify-center h-64 text-gray-500 opacity-50 col-span-full">
-                <i data-lucide="image" class="w-12 h-12 mb-4 opacity-50"></i>
-                <p>No wallpapers found.</p>
+                <span class="material-symbols-outlined text-4xl mb-4">image</span>
+                <p class="text-xs uppercase tracking-widest">No masterpieces found.</p>
             </div>`;
-        if (window.lucide) lucide.createIcons();
         return;
     }
 
     history.forEach((item) => {
-        const isFav = state.favorites.includes(item.url);
+        const itemUrl = item.image_url || item.url;
+        const isFav = state.favorites.includes(itemUrl);
         const card = document.createElement('div');
         card.className = 'history-card reveal';
 
         card.innerHTML = `
-            <img src="${item.url}" class="history-card-img" loading="lazy" onclick="showResult('${item.url}', ${item.seed || 'null'})">
+            <img src="${item.thumbnail_url || itemUrl}" class="history-card-img" loading="lazy" onclick="showResult('${itemUrl}', ${item.seed || 'null'})">
             
-            <!-- Genre Label (Top Left) -->
             <div class="overlay-info">
                 <span class="overlay-title">${item.genre}</span>
             </div>
 
-            <!-- Favorite (Top Right) -->
-            <button onclick="event.stopPropagation(); toggleFavorite('${item.url}')" class="history-fav-btn ${isFav ? 'active' : ''}">
-                <i data-lucide="star" class="w-4 h-4 ${isFav ? 'fill-current' : ''}"></i>
+            <button onclick="event.stopPropagation(); toggleFavorite('${itemUrl}')" class="history-fav-btn ${isFav ? 'active' : ''}">
+                <span class="material-symbols-outlined text-sm ${isFav ? 'fill-1' : ''}">${isFav ? 'star' : 'star'}</span>
             </button>
 
-            <!-- Bottom Actions -->
             <div class="history-actions-overlay">
                 <div class="history-btn-group">
-                    <button onclick="event.stopPropagation(); remixImage('${item.timestamp}')" class="catalog-btn" title="Remix">
-                        <i data-lucide="shuffle"></i>
+                    <button onclick="event.stopPropagation(); remixImage('${item.id || item.timestamp}')" class="catalog-btn" title="Remix">
+                        <span class="material-symbols-outlined">shuffle</span>
                     </button>
                     
-                    <button onclick="event.stopPropagation(); showResult('${item.url}', ${item.seed})" class="catalog-btn" title="View">
-                        <i data-lucide="eye"></i>
+                    <button onclick="event.stopPropagation(); showResult('${itemUrl}', ${item.seed})" class="catalog-btn" title="View">
+                        <span class="material-symbols-outlined">visibility</span>
                     </button>
                     
-                    <button onclick="event.stopPropagation(); downloadImageDirect('${item.url}')" class="catalog-btn" title="Download">
-                        <i data-lucide="download"></i>
+                    <button onclick="event.stopPropagation(); downloadImageDirect('${itemUrl}')" class="catalog-btn" title="Download">
+                        <span class="material-symbols-outlined">download</span>
                     </button>
 
-                    <button onclick="event.stopPropagation(); shareHistoryItemToCommunity('${item.timestamp}')" class="catalog-btn" title="Share to Community">
-                        <i data-lucide="share-2"></i>
+                    <button onclick="event.stopPropagation(); shareHistoryItemToCommunity('${item.id || item.timestamp}')" class="catalog-btn" title="Share to Community">
+                        <span class="material-symbols-outlined">share</span>
                     </button>
 
-                    <button onclick="event.stopPropagation(); deleteHistoryItem('${item.timestamp}')" class="catalog-btn btn-delete" title="Delete">
-                        <i data-lucide="trash-2"></i>
+                    <button onclick="event.stopPropagation(); deleteHistoryItem('${item.id || item.timestamp}')" class="catalog-btn btn-delete" title="Delete">
+                        <span class="material-symbols-outlined">trash</span>
                     </button>
                 </div>
             </div>
@@ -731,18 +764,55 @@ function renderHistory() {
 
     if (window.lucide) lucide.createIcons();
 }
-function deleteHistoryItem(timestamp) {
-    let history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
-    history = history.filter(item => item.timestamp !== Number(timestamp));
-    localStorage.setItem('wallpaper_history', JSON.stringify(history));
-    renderHistory();
+async function deleteHistoryItem(id) {
+    if (!confirm('Are you sure you want to delete this masterpiece?')) return;
+
+    const user = await getCurrentUser();
+    if (user) {
+        // Delete from DB
+        const { error } = await deleteWallpaper(id);
+        if (error) {
+            showToast('Delete failed: ' + error.message, 'error');
+        } else {
+            showToast('Masterpiece deleted from cloud', 'success');
+            renderHistory();
+            renderRecentHistory();
+        }
+    } else {
+        // Guest mode deletion
+        let history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+        history = history.filter(item => item.timestamp !== Number(id));
+        localStorage.setItem('wallpaper_history', JSON.stringify(history));
+        renderHistory();
+        renderRecentHistory();
+        showToast('Local creation deleted', 'info');
+    }
 }
 
-function toggleFavorite(url) {
-    const index = state.favorites.indexOf(url);
-    if (index > -1) state.favorites.splice(index, 1);
-    else state.favorites.push(url);
-    localStorage.setItem('wallpaper_favorites', JSON.stringify(state.favorites));
+async function toggleFavorite(url) {
+    const user = await getCurrentUser();
+
+    if (user) {
+        // DB Mode: We need the wallpaper ID to toggle save. 
+        // We find it in the current history list (which we just rendered)
+        // Or we better fetch it from the url directly
+        const { data: wp } = await supabase.from('wallpapers').select('id').eq('image_url', url).maybeSingle();
+        if (wp) {
+            const { saved } = await toggleSave(wp.id);
+            if (saved) {
+                if (!state.favorites.includes(url)) state.favorites.push(url);
+            } else {
+                state.favorites = state.favorites.filter(f => f !== url);
+            }
+        }
+    } else {
+        // Guest Mode: Pure Local
+        const index = state.favorites.indexOf(url);
+        if (index > -1) state.favorites.splice(index, 1);
+        else state.favorites.push(url);
+        localStorage.setItem('wallpaper_favorites', JSON.stringify(state.favorites));
+    }
+
     renderHistory();
     renderFavorites();
 }

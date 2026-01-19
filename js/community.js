@@ -1,4 +1,4 @@
-import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile } from './supabase.js';
+import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, incrementDownloadCount, checkUserInteractions, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile } from './supabase.js';
 import { showToast } from './toast.js';
 
 let currentPage = 0;
@@ -204,6 +204,30 @@ window.showDetailModal = function (wallpaper) {
     // Category 1: Load Comments
     loadComments(wallpaper.id);
 
+    // Setup User Interactions (Like/Save State)
+    const checkInteractions = async () => {
+        const { liked, saved } = await checkUserInteractions(wallpaper.id);
+
+        const saveBtn = document.getElementById('detail-save-btn');
+        const likeBtn = document.getElementById('detail-like-action');
+        const likeIcon = likeBtn.querySelector('span');
+
+        if (liked) {
+            likeIcon.classList.add('fill-1', 'text-accent', 'animate-heart');
+        } else {
+            likeIcon.classList.remove('fill-1', 'text-accent', 'animate-heart');
+        }
+
+        if (saved) {
+            saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm fill-1 animate-bookmark">bookmark</span> Saved to Lab';
+            saveBtn.classList.add('bg-accent/10');
+        } else {
+            saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm">bookmark</span> Save to Collection';
+            saveBtn.classList.remove('bg-accent/10');
+        }
+    };
+    checkInteractions();
+
     // Setup comments submit
     document.getElementById('comment-submit-btn').onclick = () => handleCommentSubmit(wallpaper.id);
     document.getElementById('comment-input').onkeypress = (e) => {
@@ -211,7 +235,7 @@ window.showDetailModal = function (wallpaper) {
     };
 
     // Setup buttons
-    document.getElementById('detail-download-main').onclick = () => downloadImage(wallpaper.image_url, wallpaper.title);
+    document.getElementById('detail-download-main').onclick = () => downloadImage(wallpaper.id, wallpaper.image_url, wallpaper.title);
 
     document.getElementById('detail-remix-btn').onclick = () => {
         const params = new URLSearchParams({
@@ -225,45 +249,59 @@ window.showDetailModal = function (wallpaper) {
     };
 
     const saveBtn = document.getElementById('detail-save-btn');
-    const saveIcon = saveBtn.querySelector('span');
+    let isSaving = false;
     saveBtn.onclick = async () => {
+        if (isSaving) return;
         const user = await getCurrentUser();
         if (!user) {
             if (window.openAuthModal) openAuthModal();
             return;
         }
 
+        isSaving = true;
+        saveBtn.classList.add('btn-press', 'opacity-50');
         const { saved, error } = await toggleSave(wallpaper.id);
+        saveBtn.classList.remove('btn-press', 'opacity-50');
+        isSaving = false;
+
         if (!error) {
             if (saved) {
-                saveIcon.classList.add('fill-1');
-                saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm fill-1">bookmark</span> Saved to Lab';
+                saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm fill-1 animate-bookmark">bookmark</span> Saved to Lab';
+                saveBtn.classList.add('bg-accent/10');
+                showToast('Masterpiece saved to collection', 'success');
             } else {
-                saveIcon.classList.remove('fill-1');
                 saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm">bookmark</span> Save to Collection';
+                saveBtn.classList.remove('bg-accent/10');
+                showToast('Removed from collection', 'info');
             }
         }
     };
 
-    const likeIcon = document.querySelector('#detail-like-action span');
-    // Reset icon
-    likeIcon.classList.remove('fill-1', 'text-accent');
+    const likeBtn = document.getElementById('detail-like-action');
+    const likeIcon = likeBtn.querySelector('span');
+    let isLiking = false;
 
-    document.getElementById('detail-like-action').onclick = async () => {
+    likeBtn.onclick = async () => {
+        if (isLiking) return;
         const user = await getCurrentUser();
         if (!user) {
             if (window.openAuthModal) openAuthModal();
             return;
         }
 
+        isLiking = true;
+        likeBtn.classList.add('btn-press', 'opacity-50');
         const { liked, error } = await toggleLike(wallpaper.id);
+        likeBtn.classList.remove('btn-press', 'opacity-50');
+        isLiking = false;
+
         if (!error) {
             if (liked) {
-                likeIcon.classList.add('fill-1', 'text-accent');
+                likeIcon.classList.add('fill-1', 'text-accent', 'animate-heart');
                 wallpaper.likes_count++;
             } else {
-                likeIcon.classList.remove('fill-1', 'text-accent');
-                wallpaper.likes_count--;
+                likeIcon.classList.remove('fill-1', 'text-accent', 'animate-heart');
+                wallpaper.likes_count = Math.max(0, (wallpaper.likes_count || 1) - 1);
             }
             document.getElementById('detail-likes-count').textContent = formatCount(wallpaper.likes_count);
         }
@@ -282,20 +320,38 @@ window.showDetailModal = function (wallpaper) {
     };
 };
 
-async function downloadImage(url, name) {
+async function downloadImage(id, url, name) {
+    showToast('Preparing HD download...', 'info');
+
+    // Track download in background
+    incrementDownloadCount(id);
+
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error('CORS or Network issue');
+
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = blobUrl;
-        a.download = `wallpaper-${Date.now()}.png`;
+        a.download = `${name.replace(/\s+/g, '_')}_masterpiece.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
+
+        showToast('Download started!', 'success');
+
+        // Update local UI
+        const downloadCountElem = document.getElementById('detail-downloads-count');
+        if (downloadCountElem) {
+            const current = parseInt(downloadCountElem.textContent) || 0;
+            downloadCountElem.textContent = formatCount(current + 1);
+        }
     } catch (e) {
+        console.warn('Direct download blocked, opening in new tab:', e);
         window.open(url, '_blank');
+        showToast('Download opened in new tab due to security', 'info');
     }
 }
 

@@ -251,6 +251,38 @@ export async function incrementViewCount(wallpaperId) {
     }
 }
 
+// Increment download count
+export async function incrementDownloadCount(wallpaperId) {
+    try {
+        const { error } = await supabase.rpc('increment_download_count', {
+            wallpaper_id: wallpaperId
+        });
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Download counter error:', error);
+    }
+}
+
+// Check if current user liked/saved a wallpaper
+export async function checkUserInteractions(wallpaperId) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return { liked: false, saved: false };
+
+        const [likeRes, saveRes] = await Promise.all([
+            supabase.from('likes').select('id').eq('user_id', user.id).eq('wallpaper_id', wallpaperId).maybeSingle(),
+            supabase.from('saves').select('id').eq('user_id', user.id).eq('wallpaper_id', wallpaperId).maybeSingle()
+        ]);
+
+        return {
+            liked: !!likeRes.data,
+            saved: !!saveRes.data
+        };
+    } catch (e) {
+        return { liked: false, saved: false };
+    }
+}
+
 // Fetch community wallpapers
 export async function fetchWallpapers(options = {}) {
     const {

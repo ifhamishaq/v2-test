@@ -585,40 +585,118 @@ body::after {
     margin-top: 1rem;
 }
 
-/* Toast */
+/* Masterpiece Toast System */
 .toast {
     position: fixed;
-    bottom: 2rem;
+    bottom: 3rem;
     left: 50%;
-    transform: translate(-50%, 100px);
-    background: rgba(20, 20, 20, 0.9);
+    transform: translate(-50%, 40px) scale(0.9);
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 2rem;
+    padding: 0.8rem 1.8rem;
+    border-radius: 100px;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    z-index: 1000;
+    gap: 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    z-index: 9999;
     opacity: 0;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    white-space: nowrap;
 }
 
 .toast.show {
-    transform: translate(-50%, 0);
+    transform: translate(-50%, 0) scale(1);
     opacity: 1;
+    visibility: visible;
+}
+
+.toast i {
+    width: 18px;
+    height: 18px;
+}
+
+/* Success Toast - Emerald Glow */
+.toast.success {
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(16, 185, 129, 0.1);
 }
 
 .toast.success i {
     color: #10b981;
 }
 
+/* Error Toast - Ruby Glow */
+.toast.error {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(20, 10, 10, 0.9);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(239, 68, 68, 0.15);
+}
+
 .toast.error i {
     color: #ef4444;
+    animation: toast-shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+/* Info Toast - Aurora/Blue Glow */
+.toast.info {
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.toast.info i {
+    color: #3b82f6;
+}
+
+/* Warning Toast - Amber Glow */
+.toast.warning {
+    border-color: rgba(251, 191, 36, 0.3);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(251, 191, 36, 0.1);
+}
+
+.toast.warning i {
+    color: #fbbf24;
+}
+
+@keyframes toast-shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-3px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(3px, 0, 0);
+    }
 }
 
 /* =========================================

@@ -200,20 +200,6 @@ window.showDetailModal = function (wallpaper) {
     document.getElementById('detail-likes-count').textContent = formatCount(wallpaper.likes_count || 0);
     document.getElementById('detail-downloads-count').textContent = formatCount(wallpaper.downloads_count || 0);
 
-    // Category C: Display Remix Lineage
-    const lineageBox = document.getElementById('remix-lineage');
-    const parentNameSpan = document.getElementById('parent-artist-name');
-    if (wallpaper.parent && wallpaper.parent.profiles) {
-        lineageBox.classList.remove('hidden');
-        parentNameSpan.textContent = wallpaper.parent.profiles.username;
-        // Optional: click to see parent
-        parentNameSpan.onclick = () => {
-            // Fetch parent details or just show this one?
-            // For now just keep it simple
-        };
-    } else {
-        lineageBox.classList.add('hidden');
-    }
 
     // Category 1: Load Comments
     loadComments(wallpaper.id);
@@ -233,8 +219,7 @@ window.showDetailModal = function (wallpaper) {
             genre: wallpaper.genre || '',
             style: wallpaper.style || '',
             prompt: wallpaper.prompt || '',
-            seed: wallpaper.seed || '',
-            parentId: wallpaper.id // Category C: Pass parent ID for lineage
+            seed: wallpaper.seed || ''
         });
         window.location.href = `index.html?${params.toString()}`;
     };

@@ -1215,7 +1215,6 @@ window.submitToCommunity = async function () {
             seed: window.currentGeneratedSeed,
             width: state.isDesktopMode ? APP_CONFIG.DESKTOP_WIDTH : APP_CONFIG.DEFAULT_WIDTH,
             height: state.isDesktopMode ? APP_CONFIG.DESKTOP_HEIGHT : APP_CONFIG.DEFAULT_HEIGHT,
-            parentId: state.currentParentId,
             imageUrl: window.currentGeneratedImage // For fallback
         };
 

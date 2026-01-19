@@ -192,8 +192,7 @@ export async function uploadWallpaper(imageBlob, metadata) {
                 seed: metadata.seed,
                 width: metadata.width || 1920,
                 height: metadata.height || 1080,
-                is_public: metadata.isPublic !== false,
-                parent_id: metadata.parentId || null // Track remix lineage
+                is_public: metadata.isPublic !== false
             })
             .select()
             .single();
@@ -226,8 +225,7 @@ export async function saveWallpaperRecord(metadata) {
                 seed: metadata.seed,
                 width: metadata.width || 1920,
                 height: metadata.height || 1080,
-                is_public: metadata.isPublic !== false,
-                parent_id: metadata.parentId || null
+                is_public: metadata.isPublic !== false
             })
             .select()
             .single();
@@ -274,13 +272,6 @@ export async function fetchWallpapers(options = {}) {
                 username,
                 display_name,
                 avatar_url
-            ),
-            parent:wallpapers!parent_id (
-                id,
-                title,
-                profiles (
-                   username
-                )
             )
         `)
         .eq('is_public', true)

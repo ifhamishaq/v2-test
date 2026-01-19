@@ -107,8 +107,7 @@ export async function updateProfile(updates) {
             .from('profiles')
             .upsert({
                 id: user.id,
-                ...updates,
-                updated_at: new Date().toISOString()
+                ...updates
             })
             .select()
             .single();

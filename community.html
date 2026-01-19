@@ -129,18 +129,18 @@
             <div class="w-full max-w-2xl relative group">
                 <span
                     class="material-symbols-outlined absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white transition-colors">search</span>
-                <input type="text" placeholder="Search by genre, style or artist..."
+                <input type="text" id="community-search" placeholder="Search by genre, style or artist..."
                     class="w-full h-16 rounded-full glass-main glass-input pl-16 pr-8 text-sm focus:bg-white/10">
             </div>
             <div class="flex flex-wrap justify-center gap-2">
-                <button
-                    class="px-4 py-2 rounded-full glass-main border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Cyberpunk</button>
-                <button
-                    class="px-4 py-2 rounded-full glass-main border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Minimalism</button>
-                <button
-                    class="px-4 py-2 rounded-full glass-main border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Nature</button>
-                <button
-                    class="px-4 py-2 rounded-full glass-main border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Futuristic</button>
+                <button onclick="filterByGenre('cyberpunk')"
+                    class="px-4 py-2 rounded-full glass-pill border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Cyberpunk</button>
+                <button onclick="filterByGenre('minimal')"
+                    class="px-4 py-2 rounded-full glass-pill border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Minimalism</button>
+                <button onclick="filterByGenre('nature')"
+                    class="px-4 py-2 rounded-full glass-pill border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Nature</button>
+                <button onclick="filterByGenre('fantasy')"
+                    class="px-4 py-2 rounded-full glass-pill border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:border-white/20 transition-all">#Fantasy</button>
             </div>
         </div>
 

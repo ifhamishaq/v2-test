@@ -1,4 +1,5 @@
 import { fetchWallpapers, toggleLike, toggleSave, getCurrentUser, incrementViewCount, fetchComments, addComment, subscribeToWallpapers, toggleFollow, checkFollowStatus, fetchNotifications, markNotificationRead, fetchPublicProfile } from './supabase.js';
+import { showToast } from './toast.js';
 
 let currentPage = 0;
 let currentFilter = 'latest';
@@ -291,7 +292,7 @@ window.showDetailModal = function (wallpaper) {
             });
         } else {
             navigator.clipboard.writeText(wallpaper.image_url);
-            alert('Link copied to clipboard!');
+            showToast('Link copied to clipboard!', 'success');
         }
     };
 };
@@ -441,7 +442,7 @@ async function handleCommentSubmit(wallpaperId) {
 
     if (error) {
         console.error(error);
-        alert('Failed to post comment. Please try again.');
+        showToast('Failed to post comment. Please try again.', 'error');
     } else {
         loadComments(wallpaperId);
     }

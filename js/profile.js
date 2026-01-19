@@ -1,4 +1,5 @@
 import { getCurrentUser, supabase, uploadAvatar, deleteWallpaper } from './supabase.js';
+import { showToast } from './toast.js';
 
 let currentUser = null;
 let currentTab = 'creations';
@@ -40,8 +41,9 @@ async function loadProfile() {
 
             avatarContainer.classList.remove('opacity-50');
             if (error) {
-                alert('Upload failed: ' + error.message);
+                showToast('Upload failed: ' + error.message, 'error');
             } else if (data && data.avatar_url) {
+                showToast('Avatar updated!', 'success');
                 document.getElementById('profile-avatar').src = data.avatar_url;
             }
         };
@@ -145,8 +147,9 @@ window.deleteItem = async function (id) {
 
     const { error } = await deleteWallpaper(id);
     if (error) {
-        alert('Delete failed: ' + error.message);
+        showToast('Delete failed: ' + error.message, 'error');
     } else {
+        showToast('Masterpiece deleted', 'info');
         loadProfile(); // Refresh
     }
 }

@@ -2,7 +2,8 @@
 // SHARE TO COMMUNITY HANDLERS
 // =============================================
 
-import { uploadWallpaper, getCurrentUser, supabase } from './supabase-client.js';
+import { uploadWallpaper, getCurrentUser, supabase } from './supabase.js';
+import { showToast } from './toast.js';
 
 // Global variable to track current wallpaper
 window.currentWallpaperData = null;
@@ -18,34 +19,34 @@ window.shareToCommunity = async function () {
         if (typeof openAuthModal === 'function') {
             openAuthModal();
         }
-        alert('Please sign in to share wallpapers');
+        showToast('Please sign in to share your masterpiece', 'warning');
         return;
     }
 
     // Check if we have wallpaper data
     if (!window.currentWallpaperData) {
         console.error('No wallpaper data found');
-        alert('No wallpaper to share. Please generate a wallpaper first.');
+        showToast('No wallpaper to share. Create one first!', 'warning');
         return;
     }
 
     console.log('Wallpaper data:', window.currentWallpaperData);
 
     // Prompt for title and description
-    const title = prompt('Give your wallpaper a title:', `${window.currentWallpaperData.genre} ${window.currentWallpaperData.style}`);
-    if (!title) return; // User cancelled
+    // Using custom styling or just keeping prompt for simplicity, 
+    // but the user asked for "masterpiece" so maybe I should use a custom modal?
+    // For now, I'll stick to logic fix first as this might be the "first error".
+    const title = prompt('Give your masterpiece a title:', `${window.currentWallpaperData.genre} ${window.currentWallpaperData.style}`);
+    if (!title) return;
 
-    const description = prompt('Add a description (optional):', '');
+    const description = prompt('Add a story or description (optional):', '');
 
-    console.log('Uploading to community...');
+    showToast('Publishing to community gallery...', 'info', 2000);
 
     try {
-        // Don't re-upload the image - just save metadata with existing URL
-        // The image is already publicly accessible on R2
         const user = await getCurrentUser();
-        console.log('Current user:', user);
 
-        // Check if profile exists, create if not
+        // Profile setup check
         const { data: existingProfile } = await supabase
             .from('profiles')
             .select('id')
@@ -53,7 +54,6 @@ window.shareToCommunity = async function () {
             .single();
 
         if (!existingProfile) {
-            console.log('Profile not found, creating...');
             const username = user.email.split('@')[0];
             const { error: profileError } = await supabase
                 .from('profiles')
@@ -65,7 +65,7 @@ window.shareToCommunity = async function () {
 
             if (profileError) {
                 console.error('Profile creation error:', profileError);
-                alert('Please refresh the page and try again. Your profile needs to be set up.');
+                showToast('Profile setup failed. Please try again.', 'error');
                 return;
             }
         }
@@ -77,7 +77,7 @@ window.shareToCommunity = async function () {
                 title: title,
                 description: description || '',
                 image_url: window.currentWallpaperData.imageUrl,
-                thumbnail_url: window.currentWallpaperData.imageUrl, // Use same URL
+                thumbnail_url: window.currentWallpaperData.imageUrl,
                 genre: window.currentWallpaperData.genre,
                 style: window.currentWallpaperData.style,
                 prompt: window.currentWallpaperData.prompt,
@@ -89,23 +89,19 @@ window.shareToCommunity = async function () {
             .select()
             .single();
 
-        if (error) {
-            console.error('Database error:', error);
-            throw error;
-        }
+        if (error) throw error;
 
-        console.log('Shared successfully:', data);
+        showToast('✨ Published to Community Successfully!', 'success', 5000);
 
-        // Success!
-        alert('✨ Shared to community successfully!');
-
-        // Ask if they want to view it
-        if (confirm('Wallpaper shared! View in community gallery?')) {
-            window.location.href = 'community.html';
-        }
+        // Optional confirmation to view
+        setTimeout(() => {
+            if (confirm('Wallpaper shared! View in community gallery?')) {
+                window.location.href = 'community.html';
+            }
+        }, 1000);
 
     } catch (error) {
         console.error('Share error:', error);
-        alert(`Failed to share: ${error.message}`);
+        showToast(`Failed to publish: ${error.message}`, 'error');
     }
 };

@@ -3,6 +3,7 @@
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
 import { uploadWallpaper, getCurrentUser } from './supabase.js';
+import { showToast } from './toast.js';
 
 // ============================================================================
 // STATE MANAGEMENT & GLOBALS
@@ -37,34 +38,7 @@ function isMobileDevice() {
     return window.innerWidth < 768;
 }
 
-function showToast(message, type = 'info', duration = 3000) {
-    const existingToast = document.querySelector('.toast');
-    if (existingToast) existingToast.remove();
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    const iconMap = {
-        success: 'check-circle',
-        error: 'alert-circle',
-        info: 'info',
-        warning: 'alert-triangle'
-    };
-
-    toast.innerHTML = `
-        <i data-lucide="${iconMap[type] || 'info'}" class="w-5 h-5"></i>
-        <span>${message}</span>
-    `;
-
-    document.body.appendChild(toast);
-    if (window.lucide) lucide.createIcons();
-
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
+// showToast is now imported from toast.js
 
 async function copyToClipboard(text) {
     try {
@@ -741,6 +715,10 @@ function renderHistory() {
                         <i data-lucide="download"></i>
                     </button>
 
+                    <button onclick="event.stopPropagation(); shareHistoryItemToCommunity('${item.timestamp}')" class="catalog-btn" title="Share to Community">
+                        <i data-lucide="share-2"></i>
+                    </button>
+
                     <button onclick="event.stopPropagation(); deleteHistoryItem('${item.timestamp}')" class="catalog-btn btn-delete" title="Delete">
                         <i data-lucide="trash-2"></i>
                     </button>
@@ -1166,6 +1144,22 @@ window.closeGenerationDisplay = closeGenerationDisplay;
 window.viewFullResult = viewFullResult;
 window.downloadGenerated = downloadGenerated;
 window.remixImage = remixImage;
+
+window.shareHistoryItemToCommunity = function (timestamp) {
+    const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+    const item = history.find(i => i.timestamp === Number(timestamp));
+    if (!item) return;
+
+    window.currentGeneratedImage = item.url;
+    window.currentGeneratedSeed = item.seed;
+    // Set active genre/style to match item so metadata is correct
+    const genreIndex = GENRES.findIndex(g => g.name === item.genre);
+    if (genreIndex !== -1) state.activeGenreIndex = genreIndex;
+    const styleIndex = STYLES.findIndex(s => s.name === item.style);
+    if (styleIndex !== -1) state.activeStyleIndex = styleIndex;
+
+    openCommunityUpload();
+};
 
 window.openCommunityUpload = async function () {
     if (!window.currentGeneratedImage) {

@@ -46,29 +46,8 @@ window.shareToCommunity = async function () {
     try {
         const user = await getCurrentUser();
 
-        // Profile setup check
-        const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', user.id)
-            .single();
-
-        if (!existingProfile) {
-            const username = user.email.split('@')[0];
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .insert({
-                    id: user.id,
-                    username: username,
-                    display_name: username
-                });
-
-            if (profileError) {
-                console.error('Profile creation error:', profileError);
-                showToast('Profile setup failed. Please try again.', 'error');
-                return;
-            }
-        }
+        // Profile is handled via upsert or triggers in Supabase
+        // We can proceed directly to inserting the wallpaper
 
         const { data, error } = await supabase
             .from('wallpapers')

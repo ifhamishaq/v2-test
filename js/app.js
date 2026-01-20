@@ -2,7 +2,7 @@
 
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
-import { uploadWallpaper, getCurrentUser, saveWallpaperRecord, fetchWallpapers, deleteWallpaper, onAuthStateChange } from './supabase.js';
+import { uploadWallpaper, getCurrentUser, saveWallpaperRecord, fetchWallpapers, deleteWallpaper, onAuthStateChange, supabase } from './supabase.js';
 import { showToast } from './toast.js';
 
 // ============================================================================
@@ -623,12 +623,53 @@ function toggleHistory() {
     }
 }
 
-function saveToHistory(url, genreName, styleName, prompt, seed) {
-    const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
-    const newItem = { url, genre: genreName, style: styleName, prompt, seed, date: new Date().toLocaleString(), timestamp: Date.now() };
-    history.unshift(newItem);
-    if (history.length > (APP_CONFIG.MAX_HISTORY_ITEMS || 50)) history.pop();
-    localStorage.setItem('wallpaper_history', JSON.stringify(history));
+async function saveToHistory(url, genreName, styleName, prompt, seed) {
+    const user = await getCurrentUser();
+
+    if (user) {
+        // Logged-in: Save to Supabase database
+        try {
+            const { data, error } = await saveWallpaperRecord({
+                title: `${genreName} - ${styleName}`,
+                description: prompt || 'AI Generated Wallpaper',
+                imageUrl: url,
+                genre: genreName,
+                style: styleName,
+                prompt: prompt,
+                seed: seed,
+                width: state.isDesktopMode ? APP_CONFIG.DESKTOP_WIDTH : APP_CONFIG.DEFAULT_WIDTH,
+                height: state.isDesktopMode ? APP_CONFIG.DESKTOP_HEIGHT : APP_CONFIG.DEFAULT_HEIGHT,
+                isPublic: false  // Private by default until user shares
+            });
+
+            if (error) {
+                console.error('Failed to save to database:', error);
+                showToast('Failed to save wallpaper', 'error');
+                return;
+            }
+
+            showToast('Wallpaper saved to your collection', 'success');
+        } catch (e) {
+            console.error('Save error:', e);
+            showToast('Failed to save wallpaper', 'error');
+        }
+    } else {
+        // Guest mode: Save to localStorage
+        const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+        const newItem = {
+            url,
+            genre: genreName,
+            style: styleName,
+            prompt,
+            seed,
+            date: new Date().toLocaleString(),
+            timestamp: Date.now()
+        };
+        history.unshift(newItem);
+        if (history.length > (APP_CONFIG.MAX_HISTORY_ITEMS || 50)) history.pop();
+        localStorage.setItem('wallpaper_history', JSON.stringify(history));
+    }
+
     renderRecentHistory();
 }
 
@@ -827,10 +868,28 @@ function renderFavorites() {
 }
 
 // 2B: Remix
-window.remixImage = function (timestamp) {
-    const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
-    const item = history.find(i => i.timestamp === Number(timestamp) || i.url === timestamp);
-    if (!item) return;
+window.remixImage = async function (id) {
+    const user = await getCurrentUser();
+    let item = null;
+
+    if (user) {
+        // Logged-in: Fetch from database
+        const { data } = await supabase
+            .from('wallpapers')
+            .select('*')
+            .eq('id', id)
+            .single();
+        item = data;
+    } else {
+        // Guest mode: Read from localStorage
+        const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+        item = history.find(i => i.timestamp === Number(id) || i.url === id);
+    }
+
+    if (!item) {
+        showToast('Wallpaper not found', 'error');
+        return;
+    }
 
     const genreIndex = GENRES.findIndex(g => g.name === item.genre);
     if (genreIndex !== -1) state.activeGenreIndex = genreIndex;
@@ -1219,18 +1278,56 @@ window.viewFullResult = viewFullResult;
 window.downloadGenerated = downloadGenerated;
 window.remixImage = remixImage;
 
-window.shareHistoryItemToCommunity = function (timestamp) {
-    const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
-    const item = history.find(i => i.timestamp === Number(timestamp));
-    if (!item) return;
+window.shareHistoryItemToCommunity = async function (id) {
+    const user = await getCurrentUser();
+    let item = null;
 
-    window.currentGeneratedImage = item.url;
-    window.currentGeneratedSeed = item.seed;
-    // Set active genre/style to match item so metadata is correct
-    const genreIndex = GENRES.findIndex(g => g.name === item.genre);
-    if (genreIndex !== -1) state.activeGenreIndex = genreIndex;
-    const styleIndex = STYLES.findIndex(s => s.name === item.style);
-    if (styleIndex !== -1) state.activeStyleIndex = styleIndex;
+    if (user) {
+        // Logged-in: Fetch from database
+        const { data, error } = await supabase
+            .from('wallpapers')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', user.id)  // Security: only user's own wallpapers
+            .single();
+
+        if (error || !data) {
+            showToast('Wallpaper not found', 'error');
+            return;
+        }
+        item = data;
+
+        // Set current image for upload modal
+        window.currentGeneratedImage = item.image_url;
+        window.currentGeneratedSeed = item.seed;
+
+        // Set active genre/style to match item
+        const genreIndex = GENRES.findIndex(g => g.name === item.genre);
+        if (genreIndex !== -1) state.activeGenreIndex = genreIndex;
+        const styleIndex = STYLES.findIndex(s => s.name === item.style);
+        if (styleIndex !== -1) state.activeStyleIndex = styleIndex;
+
+        // Store the wallpaper ID for updating is_public later
+        window.currentWallpaperId = item.id;
+
+    } else {
+        // Guest mode: Read from localStorage
+        const history = JSON.parse(localStorage.getItem('wallpaper_history') || '[]');
+        item = history.find(i => i.timestamp === Number(id));
+
+        if (!item) {
+            showToast('Wallpaper not found', 'error');
+            return;
+        }
+
+        window.currentGeneratedImage = item.url;
+        window.currentGeneratedSeed = item.seed;
+
+        const genreIndex = GENRES.findIndex(g => g.name === item.genre);
+        if (genreIndex !== -1) state.activeGenreIndex = genreIndex;
+        const styleIndex = STYLES.findIndex(s => s.name === item.style);
+        if (styleIndex !== -1) state.activeStyleIndex = styleIndex;
+    }
 
     openCommunityUpload();
 };
@@ -1273,6 +1370,30 @@ window.submitToCommunity = async function () {
     showToast('Publishing to community...', 'info');
 
     try {
+        const user = await getCurrentUser();
+
+        // If wallpaper already exists in DB (from shareHistoryItemToCommunity)
+        if (window.currentWallpaperId && user) {
+            // Just update to make it public
+            const { error } = await supabase
+                .from('wallpapers')
+                .update({
+                    title: title,
+                    description: desc,
+                    is_public: true
+                })
+                .eq('id', window.currentWallpaperId)
+                .eq('user_id', user.id);  // Security check
+
+            if (error) throw error;
+
+            showToast('✨ Published to community successfully!', 'success');
+            closeCommunityUpload();
+            window.currentWallpaperId = null;  // Clear
+            return;
+        }
+
+        // Otherwise, create new record (for guest uploads or direct shares)
         const genre = GENRES[state.activeGenreIndex].name;
         const style = STYLES[state.activeStyleIndex].name;
 
@@ -1285,18 +1406,19 @@ window.submitToCommunity = async function () {
             seed: window.currentGeneratedSeed,
             width: state.isDesktopMode ? APP_CONFIG.DESKTOP_WIDTH : APP_CONFIG.DEFAULT_WIDTH,
             height: state.isDesktopMode ? APP_CONFIG.DESKTOP_HEIGHT : APP_CONFIG.DEFAULT_HEIGHT,
-            imageUrl: window.currentGeneratedImage // For fallback
+            imageUrl: window.currentGeneratedImage,
+            isPublic: true  // Public when sharing to community
         };
 
         let result;
         try {
-            // Attempt to fetch and re-upload to Supabase (Best for ownership)
+            // Attempt to fetch and re-upload to Supabase
             const response = await fetch(window.currentGeneratedImage);
             if (!response.ok) throw new Error('Fetch failed');
             const blob = await response.blob();
             result = await uploadWallpaper(blob, metadata);
         } catch (fetchError) {
-            // FALLBACK: If CORS blocks fetch (common with R2/external AI), save by direct URL
+            // FALLBACK: If CORS blocks fetch, save by direct URL
             console.warn('CORS/Fetch error, falling back to Direct URL sharing:', fetchError);
             result = await saveWallpaperRecord(metadata);
         }

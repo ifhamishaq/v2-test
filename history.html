@@ -43,6 +43,19 @@
 
 <body class="font-sans bg-black text-white selection:bg-white/20 overflow-x-hidden">
 
+    <!-- Side Credit Counter (Standardized) -->
+    <div id="credit-display"
+        class="fixed top-8 right-8 z-[100] hidden h-11 px-5 glass-main rounded-full flex items-center gap-3 border border-white/10 shadow-2xl animate-[fadeIn_0.5s_ease_out]">
+        <div class="relative">
+            <span class="material-symbols-outlined text-gold text-lg fill-1">bolt</span>
+            <div class="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+        </div>
+        <div class="flex flex-col">
+            <span id="credit-count" class="text-xs font-black font-mono leading-none">0</span>
+            <span class="text-[7px] font-black uppercase tracking-widest text-white/30">Credits Left</span>
+        </div>
+    </div>
+
     <header class="relative z-10 pt-20 pb-10 px-6">
         <div class="max-w-7xl mx-auto flex flex-col items-center">
             <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-xl shadow-white/5">
@@ -92,9 +105,9 @@
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">explore</span>
             </a>
-            <a href="index.html"
-                class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all border-4 border-black">
-                <span class="material-symbols-outlined font-bold text-[28px]">add</span>
+            <a href="challenges.html"
+                class="w-14 h-14 -mt-10 bg-accent text-black rounded-full flex items-center justify-center shadow-xl shadow-accent/20 active:scale-90 transition-all border-4 border-black">
+                <span class="material-symbols-outlined font-bold text-[28px] fill-1">emoji_events</span>
             </a>
             <button class="flex flex-col items-center gap-1 group text-white">
                 <span class="material-symbols-outlined text-[26px] fill-1 text-accent">history</span>

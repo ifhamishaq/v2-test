@@ -245,12 +245,14 @@
                     class="text-white/40">Pro</span></span>
         </div>
 
-        <div id="user-indicator" class="pointer-events-auto flex items-center gap-4">
-            <!-- Auth logic will inject button here -->
+        <div class="pointer-events-auto flex items-center gap-4">
             <div id="credit-display"
                 class="hidden h-10 px-4 glass-main rounded-full flex items-center gap-2 border border-white/5">
                 <span class="material-symbols-outlined text-gold text-sm">bolt</span>
                 <span id="credit-count" class="text-xs font-bold font-mono">0</span>
+            </div>
+            <div id="user-indicator">
+                <!-- Auth logic will inject button here -->
             </div>
         </div>
     </header>
@@ -514,10 +516,10 @@
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">explore</span>
             </a>
-            <button onclick="openCommunityUpload()"
-                class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all">
-                <span class="material-symbols-outlined font-bold text-[28px]">add</span>
-            </button>
+            <a href="challenges.html"
+                class="w-14 h-14 -mt-10 bg-accent text-black rounded-full flex items-center justify-center shadow-xl shadow-accent/20 active:scale-90 transition-all border-4 border-black">
+                <span class="material-symbols-outlined font-bold text-[28px] fill-1">emoji_events</span>
+            </a>
             <a href="history.html"
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">history</span>

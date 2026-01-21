@@ -42,6 +42,16 @@ function renderProfileInfo(profile) {
     // Pre-fill settings
     document.getElementById('settings-display-name').value = profile.display_name || '';
     document.getElementById('settings-username').value = profile.username || '';
+
+    // Credits
+    if (profile.credits !== undefined) {
+        const pill = document.getElementById('profile-credits-pill');
+        const count = document.getElementById('profile-credits-count');
+        if (pill && count) {
+            pill.classList.remove('hidden');
+            count.textContent = `${profile.credits} CREDITS`;
+        }
+    }
 }
 
 async function refreshStats() {
@@ -268,6 +278,38 @@ window.openDetailModal = function (wp) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     incrementViewCount(wp.id);
+};
+
+// Deletion logic
+window.deleteItem = async function (id) {
+    if (!confirm('Permanently delete this masterpiece? This action cannot be undone.')) return;
+
+    showToast('Deleting...', 'info');
+    const { error } = await deleteWallpaper(id);
+
+    if (error) {
+        showToast('Failed to delete: ' + error.message, 'error');
+    } else {
+        showToast('Masterpiece removed', 'success');
+        closeDetailModal();
+        loadProfile(); // Refresh entire state
+    }
+};
+
+window.shareProfile = function () {
+    const profileUrl = window.location.href;
+    const name = document.getElementById('profile-name').textContent;
+
+    if (navigator.share) {
+        navigator.share({
+            title: `${name}'s Art Studio`,
+            text: `Check out these amazing AI-generated wallpapers in my studio!`,
+            url: profileUrl
+        }).catch(console.error);
+    } else {
+        navigator.clipboard.writeText(profileUrl);
+        showToast('Profile link copied to clipboard!', 'success');
+    }
 };
 
 window.closeDetailModal = function () {

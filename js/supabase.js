@@ -15,9 +15,29 @@ export const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // AUTHENTICATION HELPERS
 // =============================================
 
+// Check if username unique
+export async function checkUsernameUnique(username) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('username', username)
+            .maybeSingle();
+
+        if (error) throw error;
+        return { isUnique: !data, error: null };
+    } catch (error) {
+        return { isUnique: false, error };
+    }
+}
+
 // Sign up with email and password
 export async function signUp(email, password, username) {
     try {
+        // First check username uniqueness
+        const { isUnique, error: uniqueError } = await checkUsernameUnique(username);
+        if (!isUnique) throw new Error('Username already taken. Please choose another.');
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -29,8 +49,6 @@ export async function signUp(email, password, username) {
         });
 
         if (error) throw error;
-
-        // Database trigger will automatically create the profile!
         return { data, error: null };
     } catch (error) {
         console.error('Signup error:', error);
@@ -653,7 +671,55 @@ export async function fetchPublicProfile(username) {
     return { data, error };
 }
 
-// Fetch user stats (creations, views, followers)
+// =============================================
+// CREDIT SYSTEM
+// =============================================
+
+// Get user credits
+export async function getUserCredits(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            // If column doesn't exist or other error, return a default for safety
+            console.warn('Credits fetch error:', error);
+            return { credits: 0, error };
+        }
+        return { credits: data.credits || 0, error: null };
+    } catch (error) {
+        return { credits: 0, error };
+    }
+}
+
+// Deduct credits
+export async function useCredits(userId, amount = 1) {
+    try {
+        const { data: profile, error: fetchError } = await getUserCredits(userId);
+        if (fetchError) throw fetchError;
+
+        if (profile.credits < amount) {
+            throw new Error('Insufficient credits');
+        }
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .update({ credits: profile.credits - amount })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        return { data, error };
+    } catch (error) {
+        console.error('Credit deduction error:', error);
+        return { data: null, error };
+    }
+}
+
+// Update user stats (creations, views, followers)
 export async function fetchUserStats(userId) {
     try {
         // Creations and View counts from wallpapers table

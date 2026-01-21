@@ -25,8 +25,23 @@ const state = {
     lastGenerationTime: 0,
     generationCooldown: 30000, // 30 seconds
     // Progress tracking
-    generationProgress: 0
+    generationProgress: 0,
+    // Credits
+    credits: 0
 };
+
+// ============================================================================
+// MODERATION & SECURITY (Category C)
+// ============================================================================
+const BANNED_WORDS = [
+    'nude', 'naked', 'porn', 'sex', 'nsfw', 'explicit', 'violent', 'blood', 'gore',
+    'hate', 'racist', 'kill', 'death', 'terror', 'bomb', 'drug', 'illegal'
+];
+
+function isPromptSafe(prompt) {
+    const lowerPrompt = prompt.toLowerCase();
+    return !BANNED_WORDS.some(word => lowerPrompt.includes(word));
+}
 
 // Global WebGL Variables
 let targetColor = new THREE.Color(0x444444);
@@ -93,9 +108,11 @@ window.onload = () => {
     onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN') {
             console.log('User signed in, refreshing history');
+            syncUserCredits(); // New helper
             renderHistory();
             renderRecentHistory();
         } else if (event === 'SIGNED_OUT') {
+            document.getElementById('credit-display')?.classList.add('hidden');
             renderHistory();
             renderRecentHistory();
         }
@@ -590,6 +607,33 @@ window.setHistoryFilter = function (filter) {
     renderHistory();
 }
 
+// ============================================================================
+// CREDIT SYSTEM HELPERS
+// ============================================================================
+async function syncUserCredits() {
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
+    if (profile) {
+        state.credits = profile.credits || 0;
+        updateCreditUI();
+    }
+}
+
+function updateCreditUI() {
+    const display = document.getElementById('credit-display');
+    const count = document.getElementById('credit-count');
+    if (display && count) {
+        display.classList.remove('hidden');
+        count.innerText = state.credits;
+
+        // Visual feedback if low
+        if (state.credits < 5) count.classList.add('text-red-400');
+        else count.classList.remove('text-red-400');
+    }
+}
+
 function toggleHistory() {
     const drawer = document.getElementById('history-drawer');
     const overlay = document.getElementById('history-overlay');
@@ -982,23 +1026,50 @@ function closeResult() {
 }
 
 // ============================================================================
-// API & GENERATION (Featuring B6: Confetti)
+// GENERATION LOGIC (Category A)
 // ============================================================================
 async function handleGenerate() {
-    // Rate limiting check
+    // 1. Check Rate Limiting
     const now = Date.now();
-    const timeSinceLastGen = now - state.lastGenerationTime;
-    if (timeSinceLastGen < state.generationCooldown) {
-        const remainingSeconds = Math.ceil((state.generationCooldown - timeSinceLastGen) / 1000);
-        showToast(`⏱️ Please wait ${remainingSeconds}s before generating again`, 'warning');
+    if (now - state.lastGenerationTime < state.generationCooldown) {
+        const timeLeft = Math.ceil((state.generationCooldown - (now - state.lastGenerationTime)) / 1000);
+        showToast(`Cooling down... please wait ${timeLeft}s`, 'warning');
         return;
     }
 
+    // 2. Auth & Credit Check
+    const user = await getCurrentUser();
+    if (user) {
+        const { data: profile, error: creditError } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
+        if (creditError || (profile && profile.credits < 1)) {
+            showToast('⚠️ No credits left! Please upgrade your plan or wait for daily reset.', 'error', 5000);
+            // Optionally open monetization modal
+            if (window.openSettings) openSettings();
+            return;
+        }
+    } else {
+        // Guest limit check (local only)
+        const guestGens = parseInt(localStorage.getItem('guest_gens') || '0');
+        if (guestGens >= 5) {
+            showToast('🚀 Guest limit reached! Sign up for UNLIMITED high-res generations.', 'accent', 5000);
+            if (window.openAuthModal) openAuthModal();
+            return;
+        }
+    }
+
+    const promptInput = document.getElementById('custom-prompt');
     const genre = GENRES[state.activeGenreIndex];
     const style = STYLES[state.activeStyleIndex];
-    const promptInput = document.getElementById('custom-prompt');
+
+    if (!genre || !style) return;
 
     let finalPrompt = promptInput.value;
+
+    // 3. Content Moderation
+    if (!isPromptSafe(finalPrompt)) {
+        showToast('❌ Safety block: Your prompt contains restricted terms.', 'error');
+        return;
+    }
 
     if (!state.isPromptManuallyEdited || !finalPrompt) {
         // Use templates for better variety
@@ -1115,6 +1186,19 @@ async function handleGenerate() {
             state.lastGenerationTime = Date.now();
 
             await saveToHistory(data.output, genre.name, style.name, finalPrompt, seed);
+
+            // 4. Deduct Credit
+            if (user) {
+                const { error: deductError } = await useCredits(user.id, 1);
+                if (!deductError) {
+                    state.credits = Math.max(0, state.credits - 1);
+                    updateCreditUI();
+                }
+            } else {
+                const guestGens = parseInt(localStorage.getItem('guest_gens') || '0');
+                localStorage.setItem('guest_gens', (guestGens + 1).toString());
+            }
+
             showToast('✨ Wallpaper created successfully!', 'success');
         } else {
             throw new Error('No output data received');

@@ -587,6 +587,20 @@ async function setupNotifications() {
         }
     };
 
+    const markReadBtn = document.getElementById('mark-read-btn');
+    if (markReadBtn) {
+        markReadBtn.onclick = async () => {
+            const { data } = await fetchNotifications();
+            if (data) {
+                for (const n of data) {
+                    if (!n.is_read) await markNotificationRead(n.id);
+                }
+                showToast('All caught up!', 'success');
+                loadNotifs();
+            }
+        };
+    }
+
     async function loadNotifs() {
         list.innerHTML = '<div class="text-center py-4 text-xs text-white/40">Loading...</div>';
         const { data, error } = await fetchNotifications();

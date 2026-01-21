@@ -335,7 +335,8 @@ export async function fetchWallpapers(options = {}) {
         userId = null,
         searchQuery = null,
         genre = null,
-        style = null
+        style = null,
+        followedOnly = false
     } = options;
 
     let query = supabase
@@ -351,9 +352,24 @@ export async function fetchWallpapers(options = {}) {
 
     // Privacy Logic: Show public images OR user's own private images
     const user = await getCurrentUser();
+
     if (userId && user && user.id === userId) {
         // Fetching own images: show everything
         query = query.eq('user_id', userId);
+    } else if (followedOnly && user) {
+        // COMMUNITY SUPPORT: Fetch only from followed users
+        const { data: followedCreators } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', user.id);
+
+        const followedIds = (followedCreators || []).map(f => f.following_id);
+        if (followedIds.length > 0) {
+            query = query.in('user_id', followedIds).eq('is_public', true);
+        } else {
+            // No followers, return empty
+            return { data: [], error: null };
+        }
     } else if (userId) {
         // Fetching someone else's: only public
         query = query.eq('user_id', userId).eq('is_public', true);

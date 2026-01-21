@@ -43,14 +43,15 @@ async function loadWallpapers(reset = false) {
 
     document.getElementById('loading-indicator').classList.toggle('hidden', currentPage !== 0); // Only show text after first page
 
-    const orderBy = currentFilter === 'latest' ? 'created_at' : 'likes_count';
+    const orderBy = currentFilter === 'popular' ? 'likes_count' : 'created_at';
     const { data, error } = await fetchWallpapers({
         page: currentPage,
         limit: 20,
         orderBy: orderBy,
         ascending: false,
         searchQuery: searchQuery,
-        genre: currentGenre
+        genre: currentGenre,
+        followedOnly: currentFilter === 'following'
     });
 
     document.getElementById('loading-indicator').classList.toggle('hidden', true);
@@ -410,7 +411,7 @@ window.filterGallery = function (filter) {
     currentFilter = filter;
 
     // UI Toggle
-    const filters = ['latest', 'popular', 'curated'];
+    const filters = ['latest', 'popular', 'following', 'curated'];
     filters.forEach(f => {
         const btn = document.getElementById(`filter-${f}`);
         if (!btn) return;
@@ -422,6 +423,16 @@ window.filterGallery = function (filter) {
             btn.classList.add('text-white/40', 'hover:text-white');
         }
     });
+
+    if (filter === 'following') {
+        getCurrentUser().then(user => {
+            if (!user) {
+                if (window.openAuthModal) window.openAuthModal();
+                filterGallery('latest'); // Reset to latest if not logged in
+                return;
+            }
+        });
+    }
 
     loadWallpapers(true);
 };

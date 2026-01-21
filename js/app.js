@@ -20,7 +20,12 @@ const state = {
     numSteps: 4,
     historyFilter: 'all',
     isPromptManuallyEdited: false,
-    currentParentId: null // Category C: Track remix parent
+    currentParentId: null, // Category C: Track remix parent
+    // Rate limiting
+    lastGenerationTime: 0,
+    generationCooldown: 30000, // 30 seconds
+    // Progress tracking
+    generationProgress: 0
 };
 
 // Global WebGL Variables
@@ -99,15 +104,12 @@ window.onload = () => {
     // 4. UI Initialization
     initCarousel();
     initSwipeGestures();
-    initParallax();
-    initWebGL();
-
-    initMagneticButtons();
-    initShinyBorders();
+    // Parallax, WebGL, Magnetic Buttons, and Shiny Borders disabled for professional class performance
 
     initKeyboardNavigation();
     renderHistory();
     renderRecentHistory();
+    renderFavorites();
     renderFavorites();
     updateTime();
 
@@ -202,18 +204,7 @@ function updateCarouselUI() {
     if (genreLabel) genreLabel.innerText = GENRES[state.activeGenreIndex].name;
     if (styleLabel) styleLabel.innerText = STYLES[state.activeStyleIndex].name;
 
-    // Aurora Background Logic
-    const colorHex = GENRES[state.activeGenreIndex].color || 0x444444;
-    const color = new THREE.Color(colorHex);
-    targetColor.copy(color);
-
-    const aurora1 = document.getElementById('aurora-1');
-    const aurora2 = document.getElementById('aurora-2');
-    if (aurora1) aurora1.style.backgroundColor = `rgba(${color.r * 255}, ${color.g * 255}, ${color.b * 255}, 0.3)`;
-    if (aurora2) {
-        const styleColor = new THREE.Color(STYLES[state.activeStyleIndex].color || 0x888888);
-        aurora2.style.backgroundColor = `rgba(${styleColor.r * 255}, ${styleColor.g * 255}, ${styleColor.b * 255}, 0.2)`;
-    }
+    // Aurora Background Logic removed for professional performance
 
     updateCustomPromptPlaceholder();
     savePreferences();
@@ -246,22 +237,11 @@ function updateCustomPromptPlaceholder() {
 
     area.placeholder = text;
 
+    area.placeholder = text;
+
     if (!state.isPromptManuallyEdited) {
-        // Clear previous timeout to avoid overlapping typing
         if (typewriterTimeout) clearTimeout(typewriterTimeout);
-
-        let i = 0;
-        area.value = "";
-        const speed = 10; // ms per char
-
-        function type() {
-            if (i < text.length) {
-                area.value += text.charAt(i);
-                i++;
-                typewriterTimeout = setTimeout(type, speed);
-            }
-        }
-        type();
+        area.value = text; // Instant update instead of typing
     }
 }
 
@@ -1005,6 +985,15 @@ function closeResult() {
 // API & GENERATION (Featuring B6: Confetti)
 // ============================================================================
 async function handleGenerate() {
+    // Rate limiting check
+    const now = Date.now();
+    const timeSinceLastGen = now - state.lastGenerationTime;
+    if (timeSinceLastGen < state.generationCooldown) {
+        const remainingSeconds = Math.ceil((state.generationCooldown - timeSinceLastGen) / 1000);
+        showToast(`⏱️ Please wait ${remainingSeconds}s before generating again`, 'warning');
+        return;
+    }
+
     const genre = GENRES[state.activeGenreIndex];
     const style = STYLES[state.activeStyleIndex];
     const promptInput = document.getElementById('custom-prompt');
@@ -1048,6 +1037,16 @@ async function handleGenerate() {
 
     initGenerationAnimation();
 
+    // Start progress simulation
+    startProgressSimulation();
+
+    // Timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+        showToast('⏱️ Generation timed out. Please try again.', 'error');
+    }, 60000); // 60 second timeout
+
     try {
         const apiUrl = (API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL.slice(0, -1) : API_CONFIG.BASE_URL) + API_CONFIG.GENERATION_ENDPOINT;
         let data = null;
@@ -1057,20 +1056,40 @@ async function handleGenerate() {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: finalPrompt, width: w, height: h, num_steps: state.numSteps, seed: seed })
+                    body: JSON.stringify({ prompt: finalPrompt, width: w, height: h, num_steps: state.numSteps, seed: seed }),
+                    signal: controller.signal
                 });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+
+                    // Better error messages
+                    if (response.status === 429 || errorData.errorType === 'QUOTA_EXCEEDED') {
+                        throw new Error('API_QUOTA_EXCEEDED');
+                    } else if (response.status === 400 || errorData.errorType === 'INVALID_REQUEST') {
+                        throw new Error('INVALID_PROMPT');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                }
+
                 data = await response.json();
                 break;
             } catch (e) {
+                if (e.name === 'AbortError') {
+                    throw new Error('TIMEOUT');
+                }
                 if (i === API_CONFIG.MAX_RETRIES - 1) throw e;
-                await new Promise(r => setTimeout(r, API_CONFIG.RETRY_DELAY));
+                await new Promise(r => setTimeout(r, API_CONFIG.RETRY_DELAY * (i + 1))); // Exponential backoff
             }
         }
 
+        clearTimeout(timeoutId);
+        stopProgressSimulation();
+
         if (data && data.output) {
             stopGenerationAnimation();
-            triggerConfetti(); // Category B: Success Confetti
+            // triggerConfetti disabled for professional aesthetic
 
             canvas.style.opacity = '0';
             statusDiv.style.opacity = '0';
@@ -1091,17 +1110,58 @@ async function handleGenerate() {
 
             window.currentGeneratedImage = data.output;
             window.currentGeneratedSeed = seed;
-            saveToHistory(data.output, genre.name, style.name, finalPrompt, seed);
-            showToast('Wallpaper created successfully!', 'success');
+
+            // Update last generation time for rate limiting
+            state.lastGenerationTime = Date.now();
+
+            await saveToHistory(data.output, genre.name, style.name, finalPrompt, seed);
+            showToast('✨ Wallpaper created successfully!', 'success');
         } else {
             throw new Error('No output data received');
         }
     } catch (error) {
         console.error(error);
+        clearTimeout(timeoutId);
         stopGenerationAnimation();
+        stopProgressSimulation();
         closeGenerationDisplay();
-        showToast('Generation failed. Check settings.', 'error');
+
+        // User-friendly error messages
+        if (error.message === 'API_QUOTA_EXCEEDED') {
+            showToast('⚠️ API quota exceeded. Please try again later or contact support.', 'error');
+        } else if (error.message === 'INVALID_PROMPT') {
+            showToast('❌ Invalid prompt. Please try different settings.', 'error');
+        } else if (error.message === 'TIMEOUT') {
+            showToast('⏱️ Generation timed out. The server might be busy. Try again.', 'error');
+        } else if (error.message.includes('Failed to fetch')) {
+            showToast('🌐 Network error. Check your internet connection.', 'error');
+        } else {
+            showToast('❌ Generation failed. Please try again.', 'error');
+        }
     }
+}
+
+// Progress simulation
+let progressInterval;
+function startProgressSimulation() {
+    state.generationProgress = 0;
+    const loadingText = document.getElementById('loading-text');
+
+    progressInterval = setInterval(() => {
+        state.generationProgress += Math.random() * 10;
+        if (state.generationProgress > 90) state.generationProgress = 90; // Cap at 90% until complete
+
+        // Update loading text with progress
+        const percentage = Math.floor(state.generationProgress);
+        loadingText.innerText = `Creating Wallpaper... ${percentage}%`;
+    }, 1000);
+}
+
+function stopProgressSimulation() {
+    clearInterval(progressInterval);
+    state.generationProgress = 100;
+    const loadingText = document.getElementById('loading-text');
+    if (loadingText) loadingText.innerText = 'Almost there... 100%';
 }
 
 async function handleBatchGenerate() {

@@ -675,39 +675,62 @@ export async function fetchPublicProfile(username) {
 // CREDIT SYSTEM
 // =============================================
 
-// Get user credits
+// Get user credits with Daily Reset Logic
 export async function getUserCredits(userId) {
     try {
         const { data, error } = await supabase
             .from('profiles')
-            .select('credits')
+            .select('credits, last_credit_reset')
             .eq('id', userId)
             .single();
 
         if (error) {
-            // If column doesn't exist or other error, return a default for safety
+            // Handle missing column error (42703) gracefully
+            if (error.code === '42703') {
+                console.error('Database Error: The "credits" column is missing. Please run the SQL setup script.');
+                return { credits: 0, error: new Error('DATABASE_SETUP_REQUIRED') };
+            }
             console.warn('Credits fetch error:', error);
             return { credits: 0, error };
         }
+
+        // Backend Reset Logic (Calculated locally but synced to DB)
+        const today = new Date().toISOString().split('T')[0];
+        if (data.last_credit_reset !== today) {
+            const { data: resetData, error: resetError } = await supabase
+                .from('profiles')
+                .update({
+                    credits: 100,
+                    last_credit_reset: today
+                })
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (resetError) throw resetError;
+            return { credits: resetData.credits, error: null };
+        }
+
         return { credits: data.credits || 0, error: null };
     } catch (error) {
+        console.error('Critical Fetch error:', error);
         return { credits: 0, error };
     }
 }
 
-// Deduct credits
-export async function useCredits(userId, amount = 1) {
+// Deduct credits (10 per image)
+export async function useCredits(userId, amount = 10) {
     try {
-        const { data: profile, error: fetchError } = await getUserCredits(userId);
+        const { credits, error: fetchError } = await getUserCredits(userId);
         if (fetchError) throw fetchError;
 
-        if (profile.credits < amount) {
+        if (credits < amount) {
             throw new Error('Insufficient credits');
         }
 
         const { data, error } = await supabase
             .from('profiles')
-            .update({ credits: profile.credits - amount })
+            .update({ credits: credits - amount })
             .eq('id', userId)
             .select()
             .single();

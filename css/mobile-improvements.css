@@ -1,0 +1,209 @@
+/* Mobile Improvements */
+
+/* Fix modal overflow on mobile */
+@media (max-width: 640px) {
+
+    #result-modal .relative,
+    #detail-modal .relative,
+    #wallpaper-detail-modal .relative {
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+
+    /* Improve touch targets */
+    .catalog-btn,
+    .history-btn-group button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Better spacing for mobile */
+    .history-btn-group {
+        gap: 0.5rem;
+    }
+
+    /* Larger tap targets for navigation */
+    nav button,
+    nav a {
+        min-height: 48px;
+        min-width: 48px;
+    }
+}
+
+/* Touch gesture improvements */
+.swipeable {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent zoom on double-tap for buttons */
+button,
+.btn-primary,
+.catalog-btn {
+    touch-action: manipulation;
+}
+
+/* Improve scrolling performance on mobile */
+#history-drawer,
+#recent-history,
+#gallery-grid {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Better modal animations on mobile */
+@media (max-width: 640px) {
+    .modal-enter {
+        animation: slideUpMobile 0.3s ease-out;
+    }
+
+    @keyframes slideUpMobile {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}
+
+/* Improve generation card on mobile */
+@media (max-width: 640px) {
+    .split-card-container {
+        height: 60vh;
+        max-height: 600px;
+    }
+
+    /* Larger controls on mobile */
+    #custom-prompt {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+        min-height: 100px;
+    }
+
+    #generate-button {
+        min-height: 56px;
+        font-size: 14px;
+    }
+}
+
+/* Better loading states on mobile */
+@media (max-width: 640px) {
+    #generation-status {
+        padding: 1rem;
+    }
+
+    #loading-text {
+        font-size: 16px;
+    }
+}
+
+/* Improve community gallery on mobile */
+@media (max-width: 640px) {
+    .masonry-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .masonry-item {
+        border-radius: 1rem;
+    }
+}
+
+/* Better history drawer on mobile */
+@media (max-width: 640px) {
+    #history-drawer {
+        width: 100%;
+        border-radius: 0;
+    }
+
+    #history-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+}
+
+/* Improve auth modal on mobile */
+@media (max-width: 640px) {
+    #auth-modal .glass-main {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+}
+
+/* Better community upload modal on mobile */
+@media (max-width: 640px) {
+    #community-upload-modal .glass-main {
+        margin: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    #upload-preview {
+        max-height: 200px;
+    }
+}
+
+/* Improve advanced controls on mobile */
+@media (max-width: 640px) {
+    #advanced-controls {
+        padding: 1.5rem;
+    }
+
+    .color-dot {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Better profile page on mobile */
+@media (max-width: 640px) {
+    .profile-stat {
+        min-width: 80px;
+    }
+
+    #my-wallpapers-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+}
+
+/* Improve navigation bar on mobile */
+@media (max-width: 640px) {
+    nav.glass-main {
+        width: 95%;
+        padding: 0.75rem 1.5rem;
+    }
+
+    nav button,
+    nav a {
+        padding: 0.5rem;
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+
+    header {
+        padding-top: max(1.5rem, env(safe-area-inset-top));
+    }
+
+    nav.glass-main {
+        padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    }
+}

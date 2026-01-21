@@ -245,8 +245,13 @@
                     class="text-white/40">Pro</span></span>
         </div>
 
-        <div id="user-indicator" class="pointer-events-auto">
+        <div id="user-indicator" class="pointer-events-auto flex items-center gap-4">
             <!-- Auth logic will inject button here -->
+            <div id="credit-display"
+                class="hidden h-10 px-4 glass-main rounded-full flex items-center gap-2 border border-white/5">
+                <span class="material-symbols-outlined text-gold text-sm">bolt</span>
+                <span id="credit-count" class="text-xs font-bold font-mono">0</span>
+            </div>
         </div>
     </header>
 
@@ -363,14 +368,16 @@
                     placeholder="Describe your vision... (Optional)"></textarea>
                 <div class="absolute bottom-4 right-4 flex gap-2">
                     <button onclick="copyPrompt()"
-                        class="w-10 h-10 rounded-full glass-pill hover:bg-white/20 flex items-center justify-center transition-colors"
+                        class="w-12 h-12 rounded-full glass-pill hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110 active:scale-90"
                         title="Copy Prompt">
                         <span class="material-symbols-outlined text-sm">content_copy</span>
                     </button>
-                    <button onclick="randomize()"
-                        class="w-10 h-10 rounded-full glass-pill hover:bg-white/20 flex items-center justify-center transition-colors"
+                    <button id="shuffle-btn-main" onclick="randomize()"
+                        class="h-12 px-6 rounded-full bg-white text-black hover:bg-accent hover:text-white flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 group/shuffle"
                         title="Surprise Me">
-                        <span class="material-symbols-outlined text-sm">shuffle</span>
+                        <span
+                            class="material-symbols-outlined text-sm group-hover/shuffle:rotate-180 transition-transform duration-500">shuffle</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest">Shuffle</span>
                     </button>
                 </div>
             </div>
@@ -511,10 +518,10 @@
                 class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all">
                 <span class="material-symbols-outlined font-bold text-[28px]">add</span>
             </button>
-            <button onclick="toggleHistory()"
+            <a href="history.html"
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">history</span>
-            </button>
+            </a>
             <a href="profile.html"
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">person</span>

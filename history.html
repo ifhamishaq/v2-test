@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>My History — Wallpaper Studio Pro</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css">
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffffff",
+                        "accent": "#19e619",
+                        "glass": "rgba(255, 255, 255, 0.08)"
+                    },
+                    fontFamily: {
+                        "display": ["Outfit", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.25rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="font-sans bg-black text-white selection:bg-white/20 overflow-x-hidden">
+
+    <header class="relative z-10 pt-20 pb-10 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col items-center">
+            <div class="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-xl shadow-white/5">
+                <span class="material-symbols-outlined text-black text-3xl">history</span>
+            </div>
+            <h1 class="font-display font-bold text-4xl tracking-tight mb-2">Generation History</h1>
+            <p class="text-xs font-black uppercase tracking-[0.3em] text-white/30">Your Creative Journey</p>
+        </div>
+    </header>
+
+    <main class="relative z-10 max-w-7xl mx-auto pb-40 px-6">
+        <!-- Search/Filter Local History -->
+        <div class="mb-12 flex justify-center">
+            <div class="glass-main rounded-full px-6 py-2 flex items-center gap-4 border border-white/5">
+                <button id="filter-all"
+                    class="text-xs font-bold px-4 py-2 bg-white text-black rounded-full">All</button>
+                <button id="filter-recent"
+                    class="text-xs font-bold px-4 py-2 text-white/40 hover:text-white transition-all">Today</button>
+            </div>
+        </div>
+
+        <!-- History Grid -->
+        <div id="history-grid" class="masonry-grid animate-[fadeIn_0.8s_ease_out]">
+            <!-- History items injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="no-history" class="hidden flex flex-col items-center justify-center py-20 text-center">
+            <span class="material-symbols-outlined text-6xl text-white/10 mb-6">history_edu</span>
+            <h3 class="text-xl font-bold mb-2">The canvas is blank</h3>
+            <p class="text-white/40 text-sm max-w-xs mb-8">You haven't generated any masterpieces yet. Start creating
+                now!</p>
+            <a href="index.html"
+                class="px-10 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all">Launch
+                Studio</a>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
+        <nav class="glass-main px-8 py-5 rounded-full flex justify-between items-center shadow-2xl">
+            <a href="index.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">home</span>
+            </a>
+            <a href="community.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">explore</span>
+            </a>
+            <a href="index.html"
+                class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all border-4 border-black">
+                <span class="material-symbols-outlined font-bold text-[28px]">add</span>
+            </a>
+            <button class="flex flex-col items-center gap-1 group text-white">
+                <span class="material-symbols-outlined text-[26px] fill-1 text-accent">history</span>
+            </button>
+            <a href="profile.html"
+                class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
+                <span class="material-symbols-outlined text-[26px]">person</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Modal for viewing history item -->
+    <div id="history-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-3xl" onclick="closeModal()"></div>
+        <div
+            class="relative w-full max-w-4xl glass-main border border-white/10 rounded-[3rem] overflow-hidden flex flex-col md:flex-row shadow-2xl">
+            <div class="flex-1 bg-black/40">
+                <img id="modal-image" src="" class="w-full h-full object-contain max-h-[70vh] md:max-h-none">
+            </div>
+            <div class="w-full md:w-80 p-8 flex flex-col">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4">Masterpiece</h3>
+                <p id="modal-prompt" class="text-sm text-white/50 italic mb-8 leading-relaxed"></p>
+
+                <div class="mt-auto space-y-3">
+                    <button id="modal-download"
+                        class="w-full py-4 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">download</span> Download HD
+                    </button>
+                    <button id="modal-remix"
+                        class="w-full py-4 glass-pill text-xs font-bold flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">shuffle</span> Remix Settings
+                    </button>
+                    <button id="modal-delete"
+                        class="w-full py-4 bg-red-500/10 text-red-500 text-xs font-bold rounded-2xl border border-red-500/10 active:bg-red-500/20">
+                        Delete Forever
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/history-page.js"></script>
+
+</body>
+
+</html>

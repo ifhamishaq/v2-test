@@ -71,10 +71,19 @@
 
             <!-- Identity -->
             <div class="text-center space-y-2 mb-10">
-                <h1 id="profile-name" class="font-display font-bold text-4xl tracking-tight">---</h1>
+                <div class="flex items-center justify-center gap-3">
+                    <h1 id="profile-name" class="font-display font-bold text-4xl tracking-tight">---</h1>
+                    <button onclick="shareProfile()"
+                        class="w-10 h-10 rounded-full glass-pill flex items-center justify-center hover:bg-white/10 transition-all hover:scale-110 active:scale-95">
+                        <span class="material-symbols-outlined text-sm">share</span>
+                    </button>
+                </div>
                 <p id="profile-username" class="text-xs font-black uppercase tracking-[0.3em] text-white/30">@---</p>
-                <p id="profile-bio" class="text-sm text-white/50 max-w-sm mx-auto font-medium">Visual Explorer & AI
-                    Artist creating unique masterpieces.</p>
+                <div id="profile-credits-pill"
+                    class="hidden inline-flex items-center gap-2 px-3 py-1 bg-gold/10 border border-gold/20 rounded-full mt-4">
+                    <span class="material-symbols-outlined text-[14px] text-gold fill-1">bolt</span>
+                    <span id="profile-credits-count" class="text-[10px] font-black text-gold">0 CREDITS</span>
+                </div>
             </div>
 
             <!-- Stats Grid -->
@@ -169,13 +178,13 @@
                 class="w-14 h-14 -mt-10 bg-white text-black rounded-full flex items-center justify-center shadow-xl shadow-white/20 active:scale-90 transition-all border-4 border-black">
                 <span class="material-symbols-outlined font-bold text-[28px]">add</span>
             </a>
-            <a href="index.html"
+            <a href="history.html"
                 class="flex flex-col items-center gap-1 group text-white/40 hover:text-white transition-all">
                 <span class="material-symbols-outlined text-[26px]">history</span>
             </a>
-            <button class="flex flex-col items-center gap-1 group text-white">
+            <a href="profile.html" class="flex flex-col items-center gap-1 group text-white">
                 <span class="material-symbols-outlined text-[26px] fill-1 text-accent">person</span>
-            </button>
+            </a>
         </nav>
     </div>
 

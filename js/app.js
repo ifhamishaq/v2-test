@@ -2,7 +2,7 @@
 
 // Wallpaper Studio Pro - Main Application
 import { GENRES, STYLES, COLOR_BIASES, RANDOM_MODIFIERS, PROMPT_TEMPLATES, API_CONFIG, APP_CONFIG } from './config.js';
-import { uploadWallpaper, getCurrentUser, saveWallpaperRecord, fetchWallpapers, deleteWallpaper, onAuthStateChange, supabase } from './supabase.js';
+import { uploadWallpaper, getCurrentUser, saveWallpaperRecord, fetchWallpapers, deleteWallpaper, onAuthStateChange, supabase, getUserCredits, useCredits } from './supabase.js';
 import { showToast } from './toast.js';
 
 // ============================================================================
@@ -620,6 +620,7 @@ async function syncUserCredits() {
         updateCreditUI();
     }
 }
+window.syncUserCredits = syncUserCredits;
 
 function updateCreditUI() {
     const display = document.getElementById('credit-display');
@@ -628,11 +629,12 @@ function updateCreditUI() {
         display.classList.remove('hidden');
         count.innerText = state.credits;
 
-        // Visual feedback if low
-        if (state.credits < 5) count.classList.add('text-red-400');
+        // Visual feedback if low (less than 20 for 10-cost system)
+        if (state.credits < 20) count.classList.add('text-red-400');
         else count.classList.remove('text-red-400');
     }
 }
+window.updateCreditUI = updateCreditUI;
 
 function toggleHistory() {
     const drawer = document.getElementById('history-drawer');
@@ -1040,10 +1042,13 @@ async function handleGenerate() {
     // 2. Auth & Credit Check
     const user = await getCurrentUser();
     if (user) {
-        const { data: profile, error: creditError } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
-        if (creditError || (profile && profile.credits < 1)) {
-            showToast('⚠️ No credits left! Please upgrade your plan or wait for daily reset.', 'error', 5000);
-            // Optionally open monetization modal
+        // Fetch credits via our helper which also handles Daily Reset logic
+        const { credits, error: creditError } = await getUserCredits(user.id);
+        state.credits = credits;
+        updateCreditUI();
+
+        if (state.credits < 10) {
+            showToast('⚠️ Insufficient credits (10 required). Wait for daily reset or upgrade.', 'error', 5000);
             if (window.openSettings) openSettings();
             return;
         }
@@ -1189,9 +1194,9 @@ async function handleGenerate() {
 
             // 4. Deduct Credit
             if (user) {
-                const { error: deductError } = await useCredits(user.id, 1);
+                const { error: deductError } = await useCredits(user.id, 10);
                 if (!deductError) {
-                    state.credits = Math.max(0, state.credits - 1);
+                    state.credits = Math.max(0, state.credits - 10);
                     updateCreditUI();
                 }
             } else {

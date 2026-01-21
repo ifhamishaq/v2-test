@@ -12,104 +12,19 @@
 }
 
 body {
-    background-color: #050505;
-    color: white;
+    background-color: #0c0c0c;
+    color: #e5e5e5;
     overflow-x: hidden;
     position: relative;
-    /* Aurora Background Effect */
-    background-image:
-        radial-gradient(circle at 10% 20%, var(--aurora-color) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, var(--aurora-color-secondary) 0%, transparent 40%);
-    background-attachment: fixed;
-    transition: background-image 1s ease-in-out;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
 }
 
 .mesh-gradient {
-    background: radial-gradient(at 0% 0%, #062016 0%, transparent 50%),
-        radial-gradient(at 100% 0%, #0d3d2a 0%, transparent 50%),
-        radial-gradient(at 100% 100%, #062016 0%, transparent 50%),
-        radial-gradient(at 0% 100%, #1a4d3a 0%, transparent 50%);
-    background-color: #04120b;
+    display: none;
 }
 
-/* Premium Noise Texture Overlay */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    /* Lowest layer */
-    pointer-events: none;
-    opacity: 0.07;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 200px 200px;
-    mix-blend-mode: overlay;
-}
-
-/* Subtle Paper Grain */
-body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    pointer-events: none;
-    opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.65' numOctaves='3' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.5'/%3E%3C/svg%3E");
-    background-size: 150px 150px;
-    animation: grain-shift 8s steps(10) infinite;
-}
-
-@keyframes grain-shift {
-
-    0%,
-    100% {
-        transform: translate(0, 0);
-    }
-
-    10% {
-        transform: translate(-5%, -10%);
-    }
-
-    20% {
-        transform: translate(-15%, 5%);
-    }
-
-    30% {
-        transform: translate(7%, -25%);
-    }
-
-    40% {
-        transform: translate(-5%, 25%);
-    }
-
-    50% {
-        transform: translate(-15%, 10%);
-    }
-
-    60% {
-        transform: translate(15%, 0%);
-    }
-
-    70% {
-        transform: translate(0%, 15%);
-    }
-
-    80% {
-        transform: translate(3%, 25%);
-    }
-
-    90% {
-        transform: translate(-10%, 10%);
-    }
-}
+/* Base Layout Cleanup: Removing background noise and grains */
 
 /* =========================================
    2. WEBGL & FALLBACK
@@ -157,59 +72,28 @@ body::after {
 
 #tilt-wrapper {
     transform-style: preserve-3d;
-    transition: transform 0.1s ease-out;
-    /* Parallax speed */
+    transition: transform 0.2s ease-out;
 }
 
 .split-card-container {
     height: 75vh;
     max-height: 750px;
-    border-radius: 2.5rem;
+    border-radius: 1.5rem;
+    /* Professional rounded corners */
     overflow: hidden;
     position: relative;
     z-index: 20;
 
-    /* Glassmorphism */
-    background: rgba(26, 26, 26, 0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow:
-        0 8px 32px 0 rgba(0, 0, 0, 0.37),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 
-    transition: height 0.3s ease, width 0.3s ease;
-
-    /* Float Animation */
-    animation: float-card 6s ease-in-out infinite;
+    transition: all 0.2s ease-in-out;
 }
 
-@keyframes float-card {
-    0% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-}
-
-/* Shiny Border Effect (Category A) */
+/* Simplified Card Background */
 .split-card-container::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    z-index: -1;
-    border-radius: inherit;
-    background: radial-gradient(400px circle at var(--mouse-x) var(--mouse-y),
-            rgba(255, 255, 255, 0.3),
-            transparent 40%);
-    opacity: 0.7;
-    pointer-events: none;
+    display: none;
 }
 
 .split-card-container.desktop-mode {
@@ -247,7 +131,7 @@ body::after {
    ========================================= */
 .carousel-track {
     display: flex;
-    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
 }
 
@@ -260,18 +144,12 @@ body::after {
     position: relative;
     background-size: cover;
     background-position: center;
-
-    /* Category B: Scale/Fade Transitions */
-    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease, filter 0.6s ease;
-    transform: scale(0.9);
-    opacity: 0.3;
-    filter: grayscale(100%) blur(2px);
+    transition: opacity 0.3s ease;
+    opacity: 0;
 }
 
 .carousel-item.is-active {
-    transform: scale(1);
     opacity: 1;
-    filter: grayscale(0%) blur(0px);
 }
 
 .carousel-overlay {
@@ -1044,4 +922,87 @@ body::after {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* =========================================
+   10. MINIMAL COMMUNITY UI
+   ========================================= */
+.btn-minimal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #a3a3a3;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-minimal:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-minimal:active {
+    transform: translateY(0);
+}
+
+.btn-minimal.active {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+}
+
+.detail-modal-glass {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+}
+
+.active-filter {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+/* Animations for Minimal UI */
+@keyframes heart {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+.animate-heart {
+    animation: heart 0.4s ease-in-out;
+}
+
+@keyframes bookmark {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.animate-bookmark {
+    animation: bookmark 0.4s ease-in-out;
 }

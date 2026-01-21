@@ -1,0 +1,220 @@
+/* Performance Optimizations */
+
+/* Lazy loading images */
+img[loading="lazy"] {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+}
+
+img[loading="lazy"].loaded {
+    opacity: 1;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* GPU acceleration for animations */
+.glass-main,
+.history-card,
+.masonry-item,
+#main-card {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Optimize carousel performance */
+.carousel-track {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Optimize modal animations */
+.modal-enter,
+.modal-exit {
+    will-change: transform, opacity;
+}
+
+/* Reduce repaints */
+#webgl-canvas,
+#webgl-generation-canvas {
+    contain: layout style paint;
+}
+
+/* Optimize scrolling */
+#history-drawer,
+#gallery-grid,
+#recent-history {
+    contain: layout style paint;
+    content-visibility: auto;
+}
+
+/* Defer non-critical CSS */
+.non-critical {
+    content-visibility: auto;
+    contain-intrinsic-size: 500px;
+}
+
+/* Reduce layout shifts */
+.masonry-item,
+.history-card {
+    aspect-ratio: 9 / 16;
+}
+
+/* Optimize background effects */
+.aurora-bg {
+    will-change: opacity;
+    transform: translateZ(0);
+}
+
+/* Reduce paint area */
+.overflow-hidden {
+    contain: paint;
+}
+
+/* Optimize blur effects */
+.glass-main {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transform: translateZ(0);
+}
+
+/* Batch DOM updates */
+.batch-update {
+    contain: layout style;
+}
+
+/* Optimize image rendering */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Reduce memory usage */
+@media (max-width: 768px) {
+    #webgl-canvas {
+        display: none;
+        /* Disable WebGL on mobile for performance */
+    }
+
+    .fallback-active {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+}
+
+/* Optimize transitions */
+.smooth-transition {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reduce JavaScript execution time */
+.defer-js {
+    content-visibility: auto;
+}
+
+/* Optimize rendering */
+.optimize-rendering {
+    contain: layout style paint;
+    content-visibility: auto;
+}
+
+/* Batch style calculations */
+.batch-styles {
+    contain: style;
+}
+
+/* Optimize animations */
+@keyframes optimized-fade {
+    from {
+        opacity: 0;
+        transform: translateY(10px) translateZ(0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+/* Reduce compositing layers */
+.reduce-layers {
+    transform: none;
+    will-change: auto;
+}
+
+/* Optimize hover effects */
+@media (hover: hover) {
+    .hover-effect:hover {
+        transform: scale(1.05) translateZ(0);
+    }
+}
+
+/* Disable hover on touch devices */
+@media (hover: none) {
+    .hover-effect:hover {
+        transform: none;
+    }
+}
+
+/* Optimize scroll performance */
+.smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Reduce reflows */
+.prevent-reflow {
+    contain: layout;
+}
+
+/* Optimize text rendering */
+body {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce paint complexity */
+.simple-paint {
+    background-attachment: scroll;
+}
+
+/* Optimize gradients */
+.optimized-gradient {
+    background-image: linear-gradient(to bottom, var(--color-1), var(--color-2));
+    background-repeat: no-repeat;
+}
+
+/* Batch animations */
+.animation-batch {
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Optimize shadows */
+.optimized-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Reduce memory leaks */
+.cleanup {
+    pointer-events: none;
+    visibility: hidden;
+}
+
+/* Optimize filters */
+.optimized-filter {
+    filter: brightness(1.1) contrast(1.05);
+    transform: translateZ(0);
+}
